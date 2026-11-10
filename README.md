@@ -1,4 +1,3 @@
-# from-labs-to-bullets
 # From Labs to Bullets
 
 **A daily technical training diary for IT students. It turns hands-on labs into study prompts, training summaries, and resume bullets.**
@@ -122,7 +121,9 @@ The **Course or module** list is preloaded with:
 - AZ-104: Azure Administrator
 - SC-300: Identity and Access Administrator
 
-Students can edit their own list in **Settings & backup**. To change the default list for a new cohort, edit `DEFAULT_COURSES` near the top of the script in `index.html`.
+If a course isn't listed, students can choose **+ Add a new course…** at the bottom of the dropdown on the daily log. The course is added to their own list and offered on every day after that. They can also edit or remove courses in **Settings & backup**. This keeps the app useful when the curriculum changes from one cycle to the next.
+
+To change the default list for a new cohort, edit `DEFAULT_COURSES` near the top of the script in `index.html`.
 
 ### Lab lists
 
