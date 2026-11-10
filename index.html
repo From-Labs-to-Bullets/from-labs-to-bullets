@@ -1,0 +1,1200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>From Labs to Bullets</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect x='1' y='1' width='46' height='46' rx='12' fill='%230b1f55'/%3E%3Cpath d='M14 32h20a6.5 6.5 0 0 0 .6-13A9 9 0 0 0 17.3 17.6 7.2 7.2 0 0 0 14 32z' fill='none' stroke='%232cc4c0' stroke-width='2.6' stroke-linejoin='round'/%3E%3Cpath d='M19 22.5l3.5 3-3.5 3' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M25 28.5h5' stroke='%23fff' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f3f5fb; --surface:#ffffff; --surface-2:#eef2fa; --text:#101a3a; --muted:#59627c;
+  --border:#d9e0ee; --primary:#1d3f8f; --primary-hover:#173374; --on-primary:#fff;
+  --teal:#0e8f8f; --teal-soft:#e0f4f3; --purple:#6b5cc9; --purple-soft:#eeebfb;
+  --warn:#a34a0c; --warn-soft:#fdf0e3; --ok:#0d7a5f; --ok-soft:#e1f5ee; --danger:#b42318;
+  --shadow:0 1px 2px rgba(16,26,58,.06),0 4px 14px rgba(16,26,58,.05);
+  --radius:14px;
+  --header-grad:linear-gradient(120deg,#0b2263 0%,#16518a 52%,#5341a8 100%);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0a1024; --surface:#111a34; --surface-2:#172347; --text:#e5eaf7; --muted:#9ba6c3;
+    --border:#25325a; --primary:#5b8cff; --primary-hover:#7aa2ff; --on-primary:#06102b;
+    --teal:#35c6c1; --teal-soft:#0f2f3a; --purple:#a99df5; --purple-soft:#241f4a;
+    --warn:#f2a65a; --warn-soft:#33220f; --ok:#4fd1a5; --ok-soft:#0e2e27; --danger:#ff8a80;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0a1024; --surface:#111a34; --surface-2:#172347; --text:#e5eaf7; --muted:#9ba6c3;
+  --border:#25325a; --primary:#5b8cff; --primary-hover:#7aa2ff; --on-primary:#06102b;
+  --teal:#35c6c1; --teal-soft:#0f2f3a; --purple:#a99df5; --purple-soft:#241f4a;
+  --warn:#f2a65a; --warn-soft:#33220f; --ok:#4fd1a5; --ok-soft:#0e2e27; --danger:#ff8a80;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:15px/1.55 "Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:980px;margin:0 auto;padding:0 16px}
+h1,h2,h3{line-height:1.25;margin:0}
+h2{font-size:1.2rem}
+h3{font-size:1.02rem}
+a{color:var(--primary)}
+button{font:inherit;cursor:pointer}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* Header */
+.app-header{background:var(--header-grad);color:#fff;padding-top:14px}
+.header-inner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px}
+.brand h1{font-size:1.25rem;letter-spacing:.2px}
+.brand p{margin:0;font-size:.85rem;opacity:.82}
+.week-badge{font-size:.82rem;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);padding:4px 10px;border-radius:999px;white-space:nowrap}
+.week-badge:empty{display:none}
+.tabs{display:flex;gap:4px;margin-top:12px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{background:none;border:0;color:rgba(255,255,255,.78);padding:10px 14px;border-radius:10px 10px 0 0;white-space:nowrap;font-weight:600;font-size:.92rem}
+.tabs button:hover{color:#fff;background:rgba(255,255,255,.08)}
+.tabs button[aria-current="page"]{background:var(--bg);color:var(--text)}
+
+main{padding-top:20px;padding-bottom:60px}
+.stack{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.muted{color:var(--muted)}
+.small{font-size:.86rem}
+.lede{margin:.3rem 0 0;color:var(--muted)}
+
+/* Fields */
+.field{display:block;margin:0 0 16px}
+.field:last-child{margin-bottom:0}
+.q{display:block;font-weight:600;margin-bottom:6px}
+.q b{color:var(--teal);margin-right:2px}
+.q .opt{font-weight:400;color:var(--muted);font-size:.85rem}
+.req{color:var(--danger);font-style:normal}
+.hint{display:block;font-size:.84rem;color:var(--muted);margin:-2px 0 6px}
+input[type=text],input[type=date],input[type=number],input:not([type]),select,textarea{
+  width:100%;font:inherit;color:var(--text);background:var(--surface-2);border:1px solid var(--border);
+  border-radius:10px;padding:9px 11px;transition:border-color .15s,box-shadow .15s}
+textarea{resize:vertical;min-height:44px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px color-mix(in srgb,var(--teal) 25%,transparent)}
+.invalid{border-color:var(--danger)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--danger) 18%,transparent)!important}
+input.short{max-width:120px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);padding:9px 15px;border-radius:10px;font-weight:600;font-size:.92rem}
+.btn:hover{border-color:var(--teal)}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.btn.primary:hover{background:var(--primary-hover)}
+.btn.small{padding:6px 11px;font-size:.84rem}
+.btn.danger{color:var(--danger)}
+.btn.ghost{background:none;border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--text)}
+.actions-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.icon-btn{width:40px;height:40px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:1.3rem;line-height:1}
+.icon-btn:hover{border-color:var(--teal)}
+
+/* Day bar */
+.daybar{display:flex;align-items:center;gap:12px;padding:12px}
+.daybar-mid{flex:1;display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-width:0}
+.daybar-mid input{max-width:180px}
+.daylabel{font-weight:600}
+.daylabel span{display:block;font-weight:400;color:var(--muted);font-size:.86rem}
+
+/* Pills */
+.pill{display:inline-block;font-size:.78rem;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.draft{background:var(--warn-soft);color:var(--warn)}
+.pill.purple{background:var(--purple-soft);color:var(--purple)}
+
+/* Lab card */
+.lab{border-left:4px solid var(--teal)}
+.lab-num{color:var(--teal)}
+.notes-card{border-left:4px solid var(--purple)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}
+.chip{border:1px solid var(--border);background:var(--surface);color:var(--muted);padding:5px 12px;border-radius:999px;font-size:.85rem;font-weight:600}
+.chip:hover{border-color:var(--purple);color:var(--text)}
+.chip.on{background:var(--purple-soft);border-color:var(--purple);color:var(--purple)}
+.tagbox{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:6px;margin-top:8px}
+.tagbox input{flex:1;min-width:180px;border:0!important;background:transparent!important;box-shadow:none!important;padding:4px 6px}
+.tag{display:inline-flex;align-items:center;gap:4px;background:var(--teal-soft);color:var(--teal);font-size:.84rem;font-weight:600;padding:3px 4px 3px 10px;border-radius:999px}
+.tag button{border:0;background:none;color:inherit;font-size:1rem;line-height:1;padding:0 5px;border-radius:999px}
+.tag button:hover{background:color-mix(in srgb,var(--teal) 20%,transparent)}
+.tag.static{padding-right:10px}
+
+/* Notice */
+.notice{border-radius:12px;padding:12px 14px;background:var(--warn-soft);color:var(--text);border:1px solid color-mix(in srgb,var(--warn) 35%,transparent)}
+.notice.info{background:var(--purple-soft);border-color:color-mix(in srgb,var(--purple) 35%,transparent)}
+.notice.ok{background:var(--ok-soft);border-color:color-mix(in srgb,var(--ok) 35%,transparent)}
+.notice ul{margin:6px 0 0;padding-left:20px}
+
+/* Segmented */
+.seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{border:0;background:none;color:var(--muted);padding:7px 14px;border-radius:8px;font-weight:600;font-size:.88rem}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
+.controls{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
+.controls .field{margin:0;flex:1;min-width:200px}
+
+/* Prompt cards */
+.prompt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;align-items:start}
+.pcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow)}
+.pcard-top{display:flex;align-items:center;gap:10px}
+.pcard-icon{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;flex:none}
+.pcard p{margin:0;color:var(--muted);font-size:.9rem}
+.pcard .actions-row{margin-top:auto;padding-top:6px}
+pre.prompt{white-space:pre-wrap;word-break:break-word;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px;font:13px/1.5 Consolas,"Cascadia Mono",ui-monospace,monospace;max-height:340px;overflow:auto;margin:6px 0 0}
+.c-teal{background:var(--teal-soft);color:var(--teal)}
+.c-purple{background:var(--purple-soft);color:var(--purple)}
+.c-blue{background:color-mix(in srgb,var(--primary) 14%,transparent);color:var(--primary)}
+.c-warn{background:var(--warn-soft);color:var(--warn)}
+
+/* Tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)}
+.tile .num{font-size:1.6rem;font-weight:700;line-height:1.1}
+.tile .lbl{color:var(--muted);font-size:.84rem}
+.progress{height:8px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin-top:8px}
+.progress > div{height:100%;background:linear-gradient(90deg,var(--teal),var(--purple));border-radius:99px}
+
+/* Timeline */
+details.week{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+details.week > summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+details.week > summary::-webkit-details-marker{display:none}
+details.week.current{border-color:var(--teal)}
+details.week.future{opacity:.62}
+.week-title{font-weight:700}
+.week-title span{font-weight:400;color:var(--muted);font-size:.86rem;margin-left:6px}
+.dayrows{border-top:1px solid var(--border)}
+.dayrow{display:grid;grid-template-columns:110px 1fr auto auto;gap:10px;align-items:center;padding:10px 16px;border:0;border-bottom:1px solid var(--border);background:none;width:100%;text-align:left;color:var(--text)}
+.dayrow:last-child{border-bottom:0}
+.dayrow:hover{background:var(--surface-2)}
+.dayrow .c{color:var(--muted);font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:560px){.dayrow{grid-template-columns:1fr auto}.dayrow .c,.dayrow .labs{display:none}}
+
+/* Bullets */
+.bullet-list{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.bullet-list li{display:flex;gap:10px;align-items:flex-start;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+.bullet-list li .t{flex:1}
+.bullet-list li .t::before{content:"•";color:var(--teal);font-weight:700;margin-right:8px}
+
+.radio-row{display:flex;gap:8px;flex-wrap:wrap}
+.radio-row label{display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:10px;padding:6px 12px;cursor:pointer;background:var(--surface-2)}
+.radio-row input{accent-color:var(--teal)}
+.empty{text-align:center;padding:36px 18px}
+.empty h2{margin-bottom:6px}
+.welcome{max-width:620px;margin:10px auto}
+.welcome ul{padding-left:20px;color:var(--muted)}
+.charcount{font-size:.82rem;color:var(--muted)}
+.charcount.warn{color:var(--warn);font-weight:600}
+
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:600;font-size:.9rem;opacity:0;pointer-events:none;transition:.25s;z-index:50;max-width:calc(100% - 32px);text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+footer{color:var(--muted);font-size:.8rem;text-align:center;padding:0 16px 30px}
+</style>
+</head>
+<body>
+<header class="app-header">
+  <div class="wrap header-inner">
+    <div class="brand">
+      <svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true">
+        <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#35c6c1"/><stop offset="1" stop-color="#a99df5"/></linearGradient></defs>
+        <rect x="1" y="1" width="46" height="46" rx="12" fill="#0a1a4a" stroke="url(#lg)" stroke-width="1.6"/>
+        <path d="M14 30h20a6.5 6.5 0 0 0 .6-13A9 9 0 0 0 17.3 15.6 7.2 7.2 0 0 0 14 30z" fill="none" stroke="url(#lg)" stroke-width="2.4" stroke-linejoin="round"/>
+        <path d="M19 20.5l3.5 3-3.5 3" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M25 26.5h5" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="15.5" cy="37" r="1.7" fill="#35c6c1"/>
+        <path d="M20 37h14" stroke="#a99df5" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>
+      <div><h1>From Labs to Bullets</h1><p>Your daily technical training diary</p></div>
+    </div>
+    <div id="weekBadge" class="week-badge"></div>
+  </div>
+  <nav class="wrap tabs" id="tabs" aria-label="Main">
+    <button data-view="today">Today</button>
+    <button data-view="study">Study prompts</button>
+    <button data-view="timeline">Timeline</button>
+    <button data-view="summaries">Summaries &amp; bullets</button>
+    <button data-view="settings">Settings &amp; backup</button>
+  </nav>
+</header>
+<main class="wrap" id="main"></main>
+<footer>Your entries are stored only in this browser on this laptop. Use <b>Settings &amp; backup</b> to save a copy.</footer>
+<div id="toast" role="status" aria-live="polite"></div>
+<datalist id="techlist"></datalist>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- Constants ---------- */
+const KEY = 'fltb.v1';
+const TOTAL_WEEKS = 17;
+const DEFAULT_COURSES = [
+  'AZ-040: Automating Administration with PowerShell',
+  'GH-900: GitHub Foundations',
+  'Windows Server: Installation, Storage and Compute',
+  'Windows Server: Networking',
+  'Windows Server: Identity',
+  'Linux Administration Fundamentals (Ubuntu)',
+  'AZ-900: Azure Fundamentals',
+  'AI-901: Microsoft Azure AI Fundamentals',
+  'AZ-400: DevOps Solutions',
+  'MD-102: Endpoint Administrator',
+  'AZ-104: Azure Administrator',
+  'SC-300: Identity and Access Administrator'
+];
+const SEED_TECH = ['PowerShell','Azure CLI','Azure Portal','Azure Cloud Shell','Azure Virtual Machines','Azure Virtual Network','Network Security Groups','Azure Load Balancer','Azure DNS','Azure Storage','Azure Blob Storage','Azure Files','Azure Backup','Azure App Service','Azure Monitor','Log Analytics','Azure Policy','Azure RBAC','Azure Resource Manager','ARM templates','Bicep','Azure Key Vault','Microsoft Entra ID','Conditional Access','Multifactor authentication','Privileged Identity Management','Microsoft Intune','Windows Autopilot','Microsoft 365 admin center','Windows Server','Windows Admin Center','Server Manager','Active Directory Domain Services','Group Policy','DNS','DHCP','Hyper-V','Storage Spaces','Failover Clustering','iSCSI','Ubuntu','Bash','SSH','systemd','apt','Git','GitHub','GitHub Actions','Azure DevOps','Azure Pipelines','Azure Repos','Docker','Azure Container Instances','Azure Kubernetes Service','Azure AI services','Azure OpenAI','Microsoft Copilot'];
+const LEVELS = {
+  new:     { label:'New to IT', text:"I'm new to IT, so start at an entry level and build up." },
+  some:    { label:'Some IT experience (help desk, home lab, or earlier classes)', text:'I have some IT experience, but much of this material is new to me.' },
+  working: { label:'Already working in IT', text:'I already work in IT, so you can move quickly past the basics.' }
+};
+const levelOptions = sel => Object.entries(LEVELS).map(([k,v])=>`<option value="${k}" ${k===sel?'selected':''}>${esc(v.label)}</option>`).join('');
+const ACTIONS = ['Built','Configured','Deployed','Automated','Secured','Troubleshot','Installed','Managed','Monitored','Migrated'];
+
+/* ---------- Date helpers ---------- */
+const pad = n => String(n).padStart(2,'0');
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+const addDays = (s,n) => { const d = parse(s); d.setDate(d.getDate()+n); return iso(d); };
+const todayISO = () => iso(new Date());
+const mondayOf = s => { const d = parse(s); d.setDate(d.getDate() - ((d.getDay()+6)%7)); return iso(d); };
+const daysBetween = (a,b) => Math.round((parse(b)-parse(a))/864e5);
+const dow = s => parse(s).getDay();
+const fmt = (s,o) => parse(s).toLocaleDateString(undefined,o);
+const fmtShort = s => fmt(s,{weekday:'short',month:'short',day:'numeric'});
+const fmtLong = s => fmt(s,{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+const fmtMD = s => fmt(s,{month:'short',day:'numeric'});
+function weekOf(s){
+  if(!S.settings.startDate) return null;
+  return Math.floor(daysBetween(mondayOf(S.settings.startDate), s)/7) + 1;
+}
+const weekStart = w => addDays(mondayOf(S.settings.startDate), (w-1)*7);
+const isValidISO = s => /^\d{4}-\d{2}-\d{2}$/.test(s||'');
+
+/* ---------- Utilities ---------- */
+const $ = (s,r=document) => r.querySelector(s);
+const $$ = (s,r=document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clean = s => String(s ?? '').trim();
+const linesOf = s => String(s||'').split(/\r?\n/).map(x=>x.replace(/^[-*•\s]+/,'').trim()).filter(Boolean);
+function linkify(text){
+  return esc(text).replace(/(https?:\/\/[^\s<]+)/g, u => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
+}
+let toastTimer;
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+async function copyText(text){
+  try { await navigator.clipboard.writeText(text); toast('Copied! Paste it into your AI tool.'); return; } catch(e){}
+  const ta = document.createElement('textarea'); ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); toast('Copied! Paste it into your AI tool.'); } catch(e){ toast('Copy failed. Select the text and press Ctrl+C.'); }
+  ta.remove();
+}
+
+/* ---------- Data ---------- */
+function fresh(){
+  return { version:1, settings:{ startDate:'', level:'new', courses:DEFAULT_COURSES.slice(), lastCourse:'', lastBackup:null }, days:{}, weeks:{}, bullets:[] };
+}
+function normLab(l){
+  l = l || {};
+  return { title:clean(l.title)?l.title:'', actions:Array.isArray(l.actions)?l.actions:[], did:l.did||'', techs:Array.isArray(l.techs)?l.techs:[], outcome:l.outcome||'', scope:l.scope||'' };
+}
+function normDay(d, date){
+  d = d || {};
+  return { date: d.date || date, course:d.course||'', topics:d.topics||'', labCount:(d.labCount===''||d.labCount==null)?'':Number(d.labCount)||0,
+    labs:Array.isArray(d.labs)?d.labs.map(normLab):[], notes:d.notes||'', resources:d.resources||'', interesting:d.interesting||'', updated:d.updated||null };
+}
+function normalize(raw){
+  const base = fresh();
+  if(!raw || typeof raw !== 'object') return base;
+  base.settings = Object.assign(base.settings, raw.settings||{});
+  if(!Array.isArray(base.settings.courses) || !base.settings.courses.length) base.settings.courses = DEFAULT_COURSES.slice();
+  for(const [k,v] of Object.entries(raw.days||{})) if(isValidISO(k)) base.days[k] = normDay(v,k);
+  base.weeks = (raw.weeks && typeof raw.weeks==='object') ? raw.weeks : {};
+  base.bullets = Array.isArray(raw.bullets) ? raw.bullets.filter(b=>b && b.text) : [];
+  return base;
+}
+let storageOK = true;
+function load(){
+  try { const raw = localStorage.getItem(KEY); if(raw) return normalize(JSON.parse(raw)); }
+  catch(e){ storageOK = false; }
+  return fresh();
+}
+let S = load();
+let saveTimer = null;
+function saveNow(){
+  clearTimeout(saveTimer); saveTimer = null;
+  try { localStorage.setItem(KEY, JSON.stringify(S)); storageOK = true; }
+  catch(e){ if(storageOK) toast('Could not save in this browser. Download a backup in Settings.'); storageOK = false; }
+}
+function saveSoon(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 350); }
+window.addEventListener('beforeunload', ()=>{ if(saveTimer) saveNow(); });
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden && saveTimer) saveNow(); });
+
+const labsOf = d => d.labs.slice(0, Number(d.labCount)||0).map(normLab);
+const hasContent = d => d && (clean(d.topics) || labsOf(d).some(l=>clean(l.title)||clean(l.did)) || clean(d.notes) || clean(d.resources) || clean(d.interesting));
+const loggedDays = () => Object.values(S.days).filter(hasContent).sort((a,b)=>a.date.localeCompare(b.date));
+function missingFields(d){
+  const m = [];
+  if(!clean(d.topics)) m.push({label:'1. Topics covered in class', sel:'[data-f="topics"]'});
+  if(d.labCount==='' || d.labCount==null) m.push({label:'2. Number of labs completed', sel:'[data-f="labCount"]'});
+  if(d.labCount===0 && !clean(d.notes)) m.push({label:'What you learned today, in your own words (needed on days without labs)', sel:'[data-f="notes"]'});
+  labsOf(d).forEach((l,i)=>{
+    const n = `Lab ${i+1}`;
+    if(!clean(l.title)) m.push({label:`${n}: lab title`, sel:`[data-lab="${i}"][data-f="title"]`});
+    if(!clean(l.did)) m.push({label:`${n}: 3. what you did`, sel:`[data-lab="${i}"][data-f="did"]`});
+    if(!l.techs.length) m.push({label:`${n}: 3. technologies or tools`, sel:`[data-tagbox="${i}"]`});
+    if(!clean(l.outcome)) m.push({label:`${n}: 4. result and objective`, sel:`[data-lab="${i}"][data-f="outcome"]`});
+    if(!clean(l.scope)) m.push({label:`${n}: 5. scope of the environment`, sel:`[data-lab="${i}"][data-f="scope"]`});
+  });
+  return m;
+}
+const isComplete = d => missingFields(d).length === 0;
+function allTechs(){
+  const map = new Map();
+  SEED_TECH.forEach(t=>map.set(t.toLowerCase(), t));
+  Object.values(S.days).forEach(d=>labsOf(d).forEach(l=>l.techs.forEach(t=>map.set(t.toLowerCase(), t))));
+  return [...map.values()].sort((a,b)=>a.localeCompare(b));
+}
+function refreshTechList(){ $('#techlist').innerHTML = allTechs().map(t=>`<option value="${esc(t)}"></option>`).join(''); }
+
+/* ---------- App state ---------- */
+const st = { view:'today', cur:todayISO(), entry:null, studyMode:'day', studySel:'', sumRange:'all', sumWeek:'', sumCourse:'', sumFrom:'', sumTo:'', sumType:'bullets', prompts:{}, pid:0 };
+const main = $('#main');
+
+function setView(v){
+  st.view = v;
+  $$('#tabs button').forEach(b => { if(b.dataset.view===v) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
+  render();
+  window.scrollTo({top:0});
+}
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('button[data-view]'); if(b) { if(!S.settings.startDate && b.dataset.view!=='settings'){ render(); return;} setView(b.dataset.view); } });
+
+function updateBadge(){
+  const w = weekOf(todayISO());
+  $('#weekBadge').textContent = (w && w>=1 && w<=TOTAL_WEEKS) ? `Week ${w} of ${TOTAL_WEEKS}` : (w>TOTAL_WEEKS ? 'Training complete' : '');
+}
+
+function resetHandlers(){ main.onclick = main.oninput = main.onchange = main.onkeydown = null; main.removeEventListener('focusout', onTagBlur, true); }
+function render(){
+  resetHandlers(); st.prompts = {}; updateBadge(); refreshTechList();
+  if(!S.settings.startDate && st.view!=='settings') return renderWelcome();
+  ({today:renderToday, study:renderStudy, timeline:renderTimeline, summaries:renderSummaries, settings:renderSettings})[st.view]();
+}
+
+/* Global copy handler */
+document.addEventListener('click', e => {
+  const c = e.target.closest('[data-copy]'); if(c){ const txt = st.prompts[c.dataset.copy]; if(txt) copyText(txt); }
+  const p = e.target.closest('[data-preview]');
+  if(p){ const pre = document.getElementById(p.dataset.preview); if(pre){ pre.hidden = !pre.hidden; p.textContent = pre.hidden ? 'Preview' : 'Hide'; } }
+});
+
+/* ---------- Welcome ---------- */
+function renderWelcome(){
+  const mon = mondayOf(todayISO());
+  main.innerHTML = `
+  <section class="card welcome">
+    <h2>Welcome! Let's set up your training diary.</h2>
+    <p class="lede">Each class day (Monday to Thursday) you'll answer a few questions about what you learned and the labs you completed. In return you get:</p>
+    <ul>
+      <li><b>Study prompts</b> to paste into your AI tool (Copilot, ChatGPT, Claude, Gemini…), built from what you actually did that day.</li>
+      <li>A <b>weekly review</b> on Fridays.</li>
+      <li><b>Summaries and resume bullets</b> built from your whole training record.</li>
+    </ul>
+    <label class="field"><span class="q">When did (or will) your 17-week training start?</span>
+      <span class="hint">Pick the first day of class. The app uses it to number your weeks.</span>
+      <input type="date" id="startDate" value="${mon}" style="max-width:220px"></label>
+    <label class="field"><span class="q">How much IT experience do you have?</span>
+      <span class="hint">Your study prompts tell the AI this, so its questions match your level. You can change it later.</span>
+      <select id="levelW" style="max-width:420px">${levelOptions('new')}</select></label>
+    <div class="notice info small" style="margin-bottom:16px"><b>Private by design:</b> everything you type stays in this browser on this laptop. No account, nothing sent anywhere. Download a backup now and then from <b>Settings &amp; backup</b>.</div>
+    <div class="actions-row">
+      <button class="btn primary" id="startBtn">Get started</button>
+      <label class="btn ghost" style="cursor:pointer">Restore from a backup file<input type="file" id="importW" accept="application/json,.json" hidden></label>
+    </div>
+  </section>`;
+  $('#startBtn').onclick = () => {
+    const v = $('#startDate').value;
+    if(!isValidISO(v)){ $('#startDate').classList.add('invalid'); return; }
+    S.settings.startDate = v; S.settings.level = $('#levelW').value; saveNow(); st.cur = todayISO(); setView('today');
+    toast('All set. Log your first day!');
+  };
+  $('#importW').onchange = e => importFile(e.target.files[0]);
+}
+
+/* ---------- Today ---------- */
+function stepClassDay(dir){
+  let d = st.cur;
+  do { d = addDays(d, dir); } while(dow(d)===0 || dow(d)===6);
+  st.cur = d; renderToday();
+}
+function dayLabel(d){
+  const w = weekOf(d);
+  let sub;
+  if(w===null) sub = '';
+  else if(w < 1) sub = 'Before your training start date';
+  else if(w > TOTAL_WEEKS) sub = `After week ${TOTAL_WEEKS}`;
+  else sub = `Week ${w} of ${TOTAL_WEEKS}`;
+  return `${esc(fmtLong(d))}<span>${sub}${d===todayISO()?' · Today':''}</span>`;
+}
+function backupNudge(){
+  if(!loggedDays().length) return '';
+  const last = S.settings.lastBackup;
+  const days = last ? Math.floor((Date.now()-last)/864e5) : null;
+  if(days !== null && days < 7) return '';
+  return `<div class="notice small actions-row" style="justify-content:space-between">
+    <span>${days===null ? "You haven't backed up your diary yet." : `Your last backup was ${days} days ago.`} If this browser's data is cleared, your entries are gone.</span>
+    <button class="btn small" data-export>Download backup</button></div>`;
+}
+function renderToday(){
+  resetHandlers();
+  const d = st.cur, day = dow(d);
+  let body;
+  if(day===0 || day===6) body = weekendHTML(d);
+  else if(day===5) body = reviewHTML(d);
+  else body = dailyHTML(d);
+  main.innerHTML = `<div class="stack">
+    ${backupNudge()}
+    <section class="card daybar">
+      <button class="icon-btn" data-nav="-1" aria-label="Previous day">‹</button>
+      <div class="daybar-mid"><input type="date" id="datePick" value="${d}" aria-label="Choose a date"><div class="daylabel">${dayLabel(d)}</div></div>
+      <button class="icon-btn" data-nav="1" aria-label="Next day">›</button>
+    </section>
+    ${body}
+  </div>`;
+  $('#datePick').onchange = e => { st.cur = isValidISO(e.target.value) ? e.target.value : todayISO(); renderToday(); };
+  main.onclick = e => {
+    const t = e.target;
+    const nav = t.closest('[data-nav]'); if(nav) return stepClassDay(Number(nav.dataset.nav));
+    const go = t.closest('[data-goto]'); if(go){ st.cur = go.dataset.goto; return renderToday(); }
+    if(t.closest('[data-export]')) return exportData();
+    if(day>=1 && day<=4) dailyClick(e);
+    if(day===5) reviewClick(e);
+  };
+  if(day>=1 && day<=4) bindDaily();
+  if(day===5) bindReview();
+}
+
+function weekendHTML(d){
+  const fri = addDays(d, dow(d)===6 ? -1 : -2);
+  const thu = addDays(fri, -1);
+  return `<section class="card empty">
+    <h2>No class today. Enjoy the weekend!</h2>
+    <p class="muted">Want to catch up? Jump to a day below.</p>
+    <div class="actions-row" style="justify-content:center">
+      <button class="btn primary" data-goto="${fri}">Friday weekly review</button>
+      <button class="btn" data-goto="${thu}">Thursday's log</button>
+    </div></section>`;
+}
+
+/* Daily form */
+function getDay(date){
+  return S.days[date] ? S.days[date] : normDay({course:S.settings.lastCourse}, date);
+}
+function courseOptions(sel){
+  const list = S.settings.courses.slice();
+  if(sel && !list.includes(sel)) list.unshift(sel);
+  return `<option value="">Choose the course or module…</option>` + list.map(c=>`<option ${c===sel?'selected':''}>${esc(c)}</option>`).join('')
+    + `<option value="__add__">+ Add a new course…</option>`;
+}
+function tagsHTML(techs, i){
+  return techs.map((t,j)=>`<span class="tag">${esc(t)}<button type="button" data-rmtag="${i}:${j}" aria-label="Remove ${esc(t)}">×</button></span>`).join('')
+    + `<input class="taginput" data-taginput="${i}" list="techlist" aria-label="Add a technology for lab ${i+1}" placeholder="${techs.length?'Add another…':'Type a technology or tool, press Enter'}">`;
+}
+function labHTML(l, i){
+  return `<section class="card lab" data-labcard="${i}">
+    <div class="card-head"><h3 class="lab-num">Lab ${i+1}</h3></div>
+    <label class="field"><span class="q">Lab title <i class="req">*</i></span>
+      <input data-lab="${i}" data-f="title" value="${esc(l.title)}" placeholder="Paste the lab title from your lab platform"></label>
+    <div class="field"><span class="q"><b>3.</b> What did you build, configure, deploy, or automate in the virtual lab, and what specific technologies or tools did you use to accomplish it? <i class="req">*</i></span>
+      <span class="hint">Tap the action words that fit, describe what you did, then add each technology or tool.</span>
+      <div class="chips" role="group" aria-label="Actions for lab ${i+1}">${ACTIONS.map(a=>`<button type="button" class="chip ${l.actions.includes(a)?'on':''}" data-chip="${a}" data-lab="${i}" aria-pressed="${l.actions.includes(a)}">${a}</button>`).join('')}</div>
+      <textarea data-lab="${i}" data-f="did" rows="3" aria-label="What you did in lab ${i+1}" placeholder="e.g., Built a virtual network with two subnets and deployed a Windows Server VM into each one">${esc(l.did)}</textarea>
+      <div class="tagbox" data-tagbox="${i}">${tagsHTML(l.techs, i)}</div>
+    </div>
+    <label class="field"><span class="q"><b>4.</b> How did the environment or solution function after you completed the lab, and what business or technical objective did your setup achieve? What problem were you trying to solve? <i class="req">*</i></span>
+      <textarea data-lab="${i}" data-f="outcome" rows="3" placeholder="e.g., Both VMs could talk to each other, but RDP from the internet was blocked. This protected the servers while still letting the app tier reach the database.">${esc(l.outcome)}</textarea></label>
+    <label class="field"><span class="q"><b>5.</b> What was the scope of the lab environment, including the number of systems, devices, accounts, or automation scripts you configured? <i class="req">*</i></span>
+      <textarea data-lab="${i}" data-f="scope" rows="2" placeholder="e.g., 2 VMs, 1 virtual network, 2 subnets, 1 NSG with 3 rules, 1 PowerShell script">${esc(l.scope)}</textarea></label>
+  </section>`;
+}
+function labsHTML(e){
+  const n = Number(e.labCount)||0;
+  while(e.labs.length < n) e.labs.push(normLab());
+  if(!n) return '';
+  return e.labs.slice(0,n).map(labHTML).join('');
+}
+function notesHTML(e){
+  if(e.labCount === 0) return `<section class="card notes-card">
+    <label class="field"><span class="q">No labs today, so describe what you learned in your own words. <i class="req">*</i></span>
+      <span class="hint">For each topic: what is it, how does it work, and why does it matter in IT? Explaining it yourself is one of the best ways to remember it.</span>
+      <textarea data-f="notes" rows="6" placeholder="e.g., VNet peering connects two Azure virtual networks so their resources can talk privately over Microsoft's network. Peering isn't transitive: if A peers with B and B with C, A still can't reach C. That matters when designing hub-and-spoke networks.">${esc(e.notes)}</textarea></label>
+  </section>`;
+  return `<section class="card">
+    <label class="field"><span class="q">Any other notes from class worth remembering? <span class="opt">(optional)</span></span>
+      <span class="hint">Concepts, explanations, or tips from the lecture or discussion that weren't part of a lab.</span>
+      <textarea data-f="notes" rows="3">${esc(e.notes)}</textarea></label>
+  </section>`;
+}
+function statusPill(e){
+  if(!hasContent(e)) return `<span class="pill">Not started</span>`;
+  const m = missingFields(e).length;
+  return m ? `<span class="pill draft">Draft · ${m} left</span>` : `<span class="pill ok">Complete</span>`;
+}
+function dailyHTML(date){
+  const e = getDay(date); st.entry = e;
+  return `<form id="dayForm" class="stack" novalidate onsubmit="return false">
+    <section class="card">
+      <div class="card-head"><h2>Daily log</h2><span id="statusPill">${statusPill(e)}</span></div>
+      <div class="field">
+        <label><span class="q">Course or module</span>
+          <select data-f="course">${courseOptions(e.course)}</select></label>
+        <div id="addCourse" class="actions-row" style="margin-top:8px" hidden>
+          <input id="newCourse" aria-label="New course name" placeholder="Course name, e.g., AZ-500: Azure Security Technologies" style="flex:1;min-width:200px">
+          <button type="button" class="btn primary small" id="saveCourse">Add course</button>
+          <button type="button" class="btn ghost small" id="cancelCourse">Cancel</button>
+        </div>
+      </div>
+      <label class="field"><span class="q"><b>1.</b> What topics were covered in class today? <i class="req">*</i></span>
+        <span class="hint">One topic per line.</span>
+        <textarea data-f="topics" rows="3" placeholder="e.g.&#10;Azure virtual networks and subnets&#10;Network security groups">${esc(e.topics)}</textarea></label>
+      <label class="field"><span class="q"><b>2.</b> How many labs did you complete today? <i class="req">*</i></span>
+        <input type="number" class="short" min="0" max="12" inputmode="numeric" data-f="labCount" value="${e.labCount}"></label>
+    </section>
+    <div id="labs" class="stack">${labsHTML(e)}</div>
+    <div id="notesBox">${notesHTML(e)}</div>
+    <section class="card">
+      <label class="field"><span class="q"><b>6.</b> What resources were you given by the instructor that you may want to use later? <span class="opt">(optional)</span></span>
+        <span class="hint">Paste Microsoft Learn links, docs, videos, or commands. One per line.</span>
+        <textarea data-f="resources" rows="3" placeholder="https://learn.microsoft.com/...">${esc(e.resources)}</textarea></label>
+      <label class="field"><span class="q"><b>7.</b> What was the most interesting or surprising skill, command, technology, or concept you learned today, and why did it stand out to you? <span class="opt">(optional)</span></span>
+        <textarea data-f="interesting" rows="3">${esc(e.interesting)}</textarea></label>
+    </section>
+    <div class="actions-row">
+      <button type="button" class="btn primary" id="finishDay">Save &amp; get study prompts</button>
+      <span class="muted small">Your answers save automatically as you type.</span>
+      ${S.days[date] ? `<button type="button" class="btn ghost small" id="clearDay" style="margin-left:auto">Clear this day</button>` : ''}
+    </div>
+    <div id="missing"></div>
+  </form>
+  <div id="afterSave"></div>`;
+}
+function persistEntry(){
+  const e = st.entry; e.updated = Date.now(); S.days[e.date] = e;
+  const pill = $('#statusPill'); if(pill) pill.innerHTML = statusPill(e);
+  saveSoon();
+}
+function renderTagbox(i, focus){
+  const box = main.querySelector(`[data-tagbox="${i}"]`); if(!box) return;
+  box.innerHTML = tagsHTML(st.entry.labs[i].techs, i);
+  box.classList.remove('invalid');
+  if(focus) box.querySelector('input').focus();
+}
+function addTags(i, raw, focus){
+  const l = st.entry.labs[i];
+  const parts = String(raw).split(',').map(s=>s.trim()).filter(Boolean);
+  if(!parts.length) return;
+  parts.forEach(p => { if(!l.techs.some(t=>t.toLowerCase()===p.toLowerCase())) l.techs.push(p); });
+  renderTagbox(i, focus); persistEntry();
+}
+function onTagBlur(e){
+  const t = e.target;
+  if(t.dataset && t.dataset.taginput != null && clean(t.value)){
+    const i = Number(t.dataset.taginput), v = t.value;
+    setTimeout(()=>addTags(i, v, false), 0);
+  }
+}
+function bindDaily(){
+  const e = st.entry;
+  main.oninput = ev => {
+    const t = ev.target, f = t.dataset.f;
+    if(t.dataset.taginput != null){
+      // datalist pick: add when the value exactly matches a suggestion
+      if(ev.inputType === 'insertReplacementText' || ev.inputType === undefined){
+        if(allTechs().some(x=>x===t.value)) addTags(Number(t.dataset.taginput), t.value, true);
+      }
+      return;
+    }
+    if(!f) return;
+    if(f === 'course' && t.value === '__add__'){
+      $('#addCourse').hidden = false; $('#newCourse').value = ''; $('#newCourse').focus();
+      return;
+    }
+    if(f === 'course') $('#addCourse').hidden = true;
+    t.classList.remove('invalid');
+    if(t.dataset.lab != null){ e.labs[Number(t.dataset.lab)][f] = t.value; }
+    else if(f === 'labCount'){
+      e.labCount = t.value==='' ? '' : Math.max(0, Math.min(12, parseInt(t.value,10)||0));
+      $('#labs').innerHTML = labsHTML(e);
+      $('#notesBox').innerHTML = notesHTML(e);
+    } else {
+      e[f] = t.value;
+      if(f === 'course'){ S.settings.lastCourse = t.value; }
+    }
+    persistEntry();
+  };
+  main.onkeydown = ev => {
+    const t = ev.target;
+    if(t.id === 'newCourse'){
+      if(ev.key === 'Enter'){ ev.preventDefault(); saveNewCourse(); }
+      else if(ev.key === 'Escape'){ ev.preventDefault(); cancelNewCourse(); }
+      return;
+    }
+    if(t.dataset.taginput == null) return;
+    const i = Number(t.dataset.taginput);
+    if(ev.key === 'Enter' || ev.key === ','){ ev.preventDefault(); if(clean(t.value)) addTags(i, t.value, true); }
+    else if(ev.key === 'Backspace' && !t.value && e.labs[i].techs.length){ e.labs[i].techs.pop(); renderTagbox(i, true); persistEntry(); }
+  };
+  main.addEventListener('focusout', onTagBlur, true);
+}
+function saveNewCourse(){
+  const inp = $('#newCourse'), name = clean(inp.value).replace(/\s+/g,' ');
+  if(!name){ inp.classList.add('invalid'); inp.focus(); return; }
+  const existing = S.settings.courses.find(c => c.toLowerCase() === name.toLowerCase());
+  const course = existing || name;
+  if(!existing) S.settings.courses.push(name);
+  const e = st.entry;
+  e.course = course; S.settings.lastCourse = course;
+  $('[data-f="course"]').innerHTML = courseOptions(course);
+  $('#addCourse').hidden = true;
+  persistEntry(); saveNow();
+  toast(existing ? `"${course}" was already on your list, so it's selected` : `"${course}" added to your course list`);
+}
+function cancelNewCourse(){
+  $('[data-f="course"]').innerHTML = courseOptions(st.entry.course);
+  $('#addCourse').hidden = true;
+}
+function dailyClick(ev){
+  const t = ev.target, e = st.entry;
+  if(t.id === 'saveCourse') return saveNewCourse();
+  if(t.id === 'cancelCourse') return cancelNewCourse();
+  const chip = t.closest('[data-chip]');
+  if(chip){
+    const l = e.labs[Number(chip.dataset.lab)], a = chip.dataset.chip;
+    const k = l.actions.indexOf(a); if(k>=0) l.actions.splice(k,1); else l.actions.push(a);
+    chip.classList.toggle('on', k<0); chip.setAttribute('aria-pressed', String(k<0));
+    return persistEntry();
+  }
+  const rm = t.closest('[data-rmtag]');
+  if(rm){ const [i,j] = rm.dataset.rmtag.split(':').map(Number); e.labs[i].techs.splice(j,1); renderTagbox(i, true); return persistEntry(); }
+  if(t.closest('.tagbox') && t.classList.contains('tagbox')) return t.querySelector('input').focus();
+  if(t.id === 'clearDay'){
+    if(confirm(`Clear everything you entered for ${fmtLong(e.date)}? This can't be undone.`)){ delete S.days[e.date]; saveNow(); renderToday(); toast('Day cleared'); }
+    return;
+  }
+  if(t.id === 'finishDay' || t.id === 'promptsAnyway'){
+    // flush any half-typed technology
+    $$('[data-taginput]', main).forEach(inp => { if(clean(inp.value)) addTags(Number(inp.dataset.taginput), inp.value, false); });
+    $$('.invalid', main).forEach(x=>x.classList.remove('invalid'));
+    const miss = missingFields(e);
+    const box = $('#missing');
+    if(miss.length && t.id === 'finishDay'){
+      miss.forEach(m => { const el = main.querySelector(m.sel); if(el) el.classList.add('invalid'); });
+      box.innerHTML = `<div class="notice"><b>Almost there. Still needed:</b><ul>${miss.map(m=>`<li>${esc(m.label)}</li>`).join('')}</ul>
+        <p class="small" style="margin:8px 0 0">Your progress is saved as a draft, so you can finish later.</p>
+        ${clean(e.topics) ? `<div class="actions-row" style="margin-top:10px"><button type="button" class="btn small" id="promptsAnyway">Get study prompts anyway</button></div>` : ''}</div>`;
+      const first = main.querySelector(miss[0].sel);
+      if(first){ first.scrollIntoView({behavior:'smooth', block:'center'}); const f = first.matches('input,textarea,select') ? first : first.querySelector('input'); if(f) setTimeout(()=>f.focus({preventScroll:true}), 300); }
+      return;
+    }
+    box.innerHTML = '';
+    persistEntry(); saveNow();
+    $('#afterSave').innerHTML = `<section class="stack" style="margin-top:20px">
+      <div class="notice ok"><b>${miss.length ? 'Saved as a draft.' : 'Day saved. Nice work!'}</b> Now lock it in: pick a study style below, copy the prompt, and paste it into your AI tool.</div>
+      ${promptCardsHTML([e], 'today')}</section>`;
+    $('#afterSave').scrollIntoView({behavior:'smooth', block:'start'});
+    toast(miss.length ? 'Draft saved' : 'Day saved ✓');
+  }
+}
+
+/* Friday review */
+function weekDays(w){ return [0,1,2,3].map(k=>addDays(weekStart(w),k)); }
+function getWeek(w){ return S.weeks[w] || {wins:'', unclear:'', confidence:0, focus:''}; }
+function reviewHTML(date){
+  const w = weekOf(date);
+  if(w===null || w<1) return `<section class="card empty"><h2>Friday weekly review</h2><p class="muted">This date is before your training start date.</p></section>`;
+  const wk = getWeek(w);
+  const days = weekDays(w).map(d => {
+    const e = S.days[d];
+    const status = !hasContent(e) ? `<span class="pill">Not logged</span>` : isComplete(e) ? `<span class="pill ok">Complete</span>` : `<span class="pill draft">Draft</span>`;
+    return `<button type="button" class="dayrow" data-goto="${d}"><b>${esc(fmtShort(d))}</b><span class="c">${esc(e&&e.course||'')}</span><span class="labs small muted">${e?labsOf(e).length:0} labs</span>${status}</button>`;
+  }).join('');
+  return `<section class="card" style="padding:0;overflow:hidden">
+      <div style="padding:18px 18px 10px"><h2>Week ${w} at a glance</h2><p class="lede small">Tap a day to fill in or fix anything you missed.</p></div>
+      <div class="dayrows">${days}</div>
+    </section>
+    <form class="card" id="reviewForm" onsubmit="return false">
+      <div class="card-head"><h2>Friday weekly review</h2><span class="pill purple">Week ${w}</span></div>
+      <label class="field"><span class="q">What were your biggest wins or accomplishments this week?</span>
+        <textarea data-wf="wins" rows="3">${esc(wk.wins)}</textarea></label>
+      <label class="field"><span class="q">What still feels unclear or shaky?</span>
+        <span class="hint">Be honest. The study prompts will focus on these.</span>
+        <textarea data-wf="unclear" rows="3">${esc(wk.unclear)}</textarea></label>
+      <div class="field"><span class="q">How confident do you feel about this week's material?</span>
+        <div class="radio-row" role="radiogroup" aria-label="Confidence">${[1,2,3,4,5].map(n=>`<label><input type="radio" name="conf" value="${n}" ${wk.confidence===n?'checked':''}> ${n}${n===1?' · lost':n===5?' · could teach it':''}</label>`).join('')}</div></div>
+      <label class="field"><span class="q">What do you want to focus on next week?</span>
+        <textarea data-wf="focus" rows="2">${esc(wk.focus)}</textarea></label>
+      <div class="actions-row"><button type="button" class="btn primary" id="weekPrompts">Get my weekly summary &amp; study prompts</button><span class="muted small">Saves automatically.</span></div>
+    </form>
+    <section class="card actions-row" style="justify-content:space-between">
+      <div><h3>Friday backup</h3><p class="lede small">Download a copy of your diary so you never lose your work.</p></div>
+      <button class="btn" data-export>Download backup</button>
+    </section>
+    <div id="afterSave"></div>`;
+}
+function bindReview(){
+  const w = weekOf(st.cur); if(!w || w<1) return;
+  main.oninput = ev => {
+    const t = ev.target; const wk = S.weeks[w] = getWeek(w);
+    if(t.dataset.wf){ wk[t.dataset.wf] = t.value; saveSoon(); }
+    else if(t.name === 'conf'){ wk.confidence = Number(t.value); saveSoon(); }
+  };
+}
+function reviewClick(ev){
+  if(ev.target.id !== 'weekPrompts') return;
+  const w = weekOf(st.cur); saveNow();
+  const days = weekDays(w).map(d=>S.days[d]).filter(hasContent);
+  const out = $('#afterSave');
+  if(!days.length){ out.innerHTML = `<div class="notice" style="margin-top:16px">You haven't logged any days for week ${w} yet. Fill in a day above first.</div>`; return; }
+  const sumId = regPrompt(summaryPrompt('summary', days, `Week ${w} of my training`, true));
+  out.innerHTML = `<section class="stack" style="margin-top:20px">
+    <div class="pcard"><div class="pcard-top"><div class="pcard-icon c-blue">${ICON.summary}</div><div><h3>Weekly summary</h3><p>A recap of week ${w}: skills, labs and what to review.</p></div></div>
+      <pre class="prompt" id="pre-${sumId}" hidden>${esc(st.prompts[sumId])}</pre>
+      <div class="actions-row"><button class="btn primary small" data-copy="${sumId}">Copy prompt</button><button class="btn small" data-preview="pre-${sumId}">Preview</button></div></div>
+    <h3 style="margin-top:6px">Study this week's material</h3>
+    ${promptCardsHTML(days, `week ${w}`, getWeek(w))}</section>`;
+  out.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+/* ---------- Prompt builders ---------- */
+const ICON = {
+  examiner:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><path d="M6 16v-4"/><path d="M11 16V8"/><path d="M16 16V4"/></svg>',
+  listener:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 10h8M8 13h5"/></svg>',
+  summary:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>',
+  bullets:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>',
+  star:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>'
+};
+function regPrompt(text){ const id = 'p' + (++st.pid); st.prompts[id] = text; return id; }
+function coursesIn(days){ return [...new Set(days.map(d=>clean(d.course)).filter(Boolean))]; }
+function intro(days, label){
+  const cs = coursesIn(days);
+  const lvl = (LEVELS[S.settings.level] || LEVELS.new).text;
+  return `I'm a student in a 17-week, hands-on IT technical training program. ${lvl} Most of my training follows Microsoft Learn${cs.length ? `, and this material comes from: ${cs.join('; ')}` : ''}. Below are my own notes from ${label}.`;
+}
+function labBlock(l, i){
+  const out = [`Lab ${i+1}: ${clean(l.title) || '(untitled lab)'}`];
+  if(clean(l.did) || l.actions.length) out.push(`- What I did${l.actions.length ? ` (${l.actions.join(', ').toLowerCase()})` : ''}: ${clean(l.did) || '(no description)'}`);
+  if(l.techs.length) out.push(`- Technologies and tools: ${l.techs.join(', ')}`);
+  if(clean(l.outcome)) out.push(`- Result and objective: ${clean(l.outcome)}`);
+  if(clean(l.scope)) out.push(`- Scope: ${clean(l.scope)}`);
+  return out.join('\n');
+}
+function notesBlock(days, opts={}){
+  const out = [];
+  let lastWeek = null;
+  days.forEach(d => {
+    const w = weekOf(d.date);
+    if(opts.weekly && w !== lastWeek && w>0){
+      lastWeek = w; const wk = S.weeks[w];
+      if(wk && (clean(wk.wins)||clean(wk.unclear)||clean(wk.focus)||wk.confidence)){
+        const r = [`=== Week ${w} self-review ===`];
+        if(clean(wk.wins)) r.push(`Wins: ${clean(wk.wins)}`);
+        if(clean(wk.unclear)) r.push(`Still unclear: ${clean(wk.unclear)}`);
+        if(wk.confidence) r.push(`Confidence: ${wk.confidence}/5`);
+        if(clean(wk.focus)) r.push(`Focus for next week: ${clean(wk.focus)}`);
+        out.push(r.join('\n'));
+      }
+    }
+    const head = `## ${fmtLong(d.date)}${w>0 ? ` (Week ${w})` : ''}${clean(d.course) ? ` · ${clean(d.course)}` : ''}`;
+    const parts = [head];
+    const topics = linesOf(d.topics);
+    if(topics.length) parts.push('Topics covered in class:\n' + topics.map(t=>'- '+t).join('\n'));
+    if(clean(d.notes)) parts.push(`My notes on what I learned (in my own words):\n${clean(d.notes)}`);
+    labsOf(d).forEach((l,i)=>parts.push(labBlock(l,i)));
+    if(opts.resources && clean(d.resources)) parts.push('Resources from my instructor:\n' + linesOf(d.resources).map(t=>'- '+t).join('\n'));
+    if(clean(d.interesting)) parts.push(`Most interesting thing I learned: ${clean(d.interesting)}`);
+    out.push(parts.join('\n'));
+  });
+  return out.join('\n\n');
+}
+function weakSpot(wk){ return wk && clean(wk.unclear) ? `\nI flagged these as still unclear, so spend extra time on them: ${clean(wk.unclear)}\n` : ''; }
+
+const GROUND_RULES = `Ground rules:
+- Keep to the topics and labs in my notes. Only go beyond them to connect related ideas, and tell me when you do.
+- Use current Microsoft product names (for example, Microsoft Entra ID, not Azure Active Directory).
+- If you're not completely sure something is correct, say so instead of guessing, and tell me which Microsoft Learn topic to check.
+- If my notes include links and you can open them, use them. If you can't open them, rely on my notes and what you know.`;
+
+const ROLES = [
+  { key:'listener', name:'Listener', color:'c-purple', when:'Best after class: checks that you really understand.', tag:'You explain a topic in your own words. The AI grades your explanation and tells you what you missed.',
+    build:(days,label,wk)=>`Act as a strict but encouraging instructor who grades explanations. ${intro(days,label)}
+
+I'm going to explain a concept in my own words, as if I were teaching it to a new coworker.
+
+How this works:
+1. First, ask me one warm-up question: how confident do I feel about this material, from 1 (lost) to 5 (could teach it)? Use my answer to decide how much detail to expect.
+2. Then list the topics and labs from my notes as a numbered menu, and ask me which one I want to explain. Wait for my choice.
+3. After I explain, grade my explanation from 1 to 5 on each of: Accuracy, Completeness, Clarity, and Correct use of technical terms. Be a strict grader: a vague or incomplete explanation should score 3 or lower.
+4. Then tell me what I got right, what I missed, anything I got wrong, and any terms I used incorrectly.
+5. Only AFTER grading, give me a short model explanation (one paragraph) to compare with mine.
+6. Invite me to try again or pick another topic.
+
+Don't explain a topic before I've had my turn.
+
+${GROUND_RULES}
+${weakSpot(wk)}
+MY NOTES:
+${notesBlock(days, {resources:true})}
+
+Start with the warm-up question.` },
+  { key:'examiner', name:'Examiner', color:'c-blue', when:'Best before a quiz or exam: shows your level.', tag:'Quizzes you one question at a time and gets harder until you miss, so you know your level.',
+    build:(days,label,wk)=>`Act as a certification exam coach. ${intro(days,label)}
+
+Quiz me on this material, ONE question at a time, using adaptive difficulty:
+- Level 1: definitions and recall
+- Level 2: understanding (explain why or compare two things)
+- Level 3: applying (which command, setting, or service would you use?)
+- Level 4: troubleshooting (something is broken, so what do you check first?)
+- Level 5: scenario questions, in the style of Microsoft certification exams
+
+How this works:
+1. First, ask me one warm-up question: how confident do I feel about this material, from 1 (lost) to 5 (could teach it)? Start at level 1 if I answer 1 to 3, or level 2 if I answer 4 or 5.
+2. After each correct answer, move up one level. After a wrong answer, stay at the same level with a new question.
+3. Mix question types: multiple choice, short answer, and "put these steps in order".
+4. Never show the answer before I respond. After I answer, tell me if I'm right, explain why in 2 to 3 sentences, and name the Microsoft Learn concept the question tests.
+5. After every answer, show my running score in this format: "Level 3 · Correct: 4 · Misses at this level: 1".
+6. When I miss two questions at the same level, stop the quiz. Tell me my level (1 to 5), list what I got wrong, and tell me exactly what to review.
+
+${GROUND_RULES}
+${weakSpot(wk)}
+MY NOTES:
+${notesBlock(days, {resources:true})}
+
+Start with the warm-up question.` }
+];
+
+function promptCardsHTML(days, label, wk){
+  const lbl = label === 'today' ? 'today\'s class' : label;
+  return `<p class="muted small" style="margin:0">Each prompt already includes your notes. Copy it, open your AI tool (Copilot, ChatGPT, Claude, Gemini…), paste, and press Enter.</p>
+  <div class="notice info small"><b>AI can be wrong.</b> Treat it as a practice partner, not the final word. If an answer or grade doesn't match your lab or class, check it on Microsoft Learn or ask your instructor. Questioning AI output is a skill employers value.</div>
+  <div class="prompt-grid">${ROLES.map(r=>{
+    const id = regPrompt(r.build(days, lbl, wk));
+    return `<div class="pcard"><div class="pcard-top"><div class="pcard-icon ${r.color}">${ICON[r.key]}</div><h3>${r.name}</h3></div>
+      <p>${r.tag}</p>
+      <p class="small" style="color:var(--teal);font-weight:600">${r.when}</p>
+      <pre class="prompt" id="pre-${id}" hidden>${esc(st.prompts[id])}</pre>
+      <div class="actions-row"><button class="btn primary small" data-copy="${id}">Copy prompt</button><button class="btn small" data-preview="pre-${id}">Preview</button></div></div>`;
+  }).join('')}</div>`;
+}
+
+function summaryPrompt(type, days, label, weekly){
+  const notes = notesBlock(days, {resources: type==='summary', weekly: true});
+  const labCount = days.reduce((n,d)=>n+labsOf(d).length, 0);
+  const nb = Math.max(3, Math.min(12, Math.ceil(labCount/3)));
+  if(type === 'summary') return `${intro(days, label)}
+
+Write a clear, well-organized summary of my technical training, using ONLY the information in my notes. Use this structure:
+1. Overview (2 to 3 sentences): what I focused on and the main skills I practiced.
+2. Skills and technologies: group them by area (for example Cloud/Azure, Identity, Networking, Windows Server, Linux, Automation and DevOps, Endpoint management), and for each area say what I can now do.
+3. Key hands-on labs: the most significant labs and what each one accomplished.
+4. Growth areas: topics that look less developed or that I said were unclear, with Microsoft Learn topics to review for each.${weekly ? '\n5. Resources worth keeping: the most useful instructor resources from my notes.' : ''}
+
+Write in first person, and keep it factual. Do not add skills, tools, or results that aren't in my notes.
+
+MY NOTES:
+${notes}`;
+  if(type === 'bullets') return `${intro(days, label)}
+
+Using ONLY the hands-on lab work in my notes, write about ${nb} resume bullets for an entry-level IT, cloud, or systems administration role.
+
+Every bullet must follow this format: Action + Technology + Purpose
+- Action: start with a strong past-tense verb that says what I did (for example Built, Configured, Deployed, Automated, Secured, Troubleshot).
+- Technology: name the specific tools, services, or platforms I used (for example Azure Virtual Network, PowerShell, Microsoft Entra ID, Group Policy).
+- Purpose: end with what the setup accomplished, meaning the business or technical outcome.
+
+Example: Configured Azure Virtual Networks and Network Security Groups to segment workloads and block unauthorized inbound traffic.
+
+Rules:
+1. Use the scope details (number of VMs, users, devices, scripts) to add numbers when they're in my notes. Never invent numbers, tools, or results.
+2. Combine similar labs into one stronger bullet instead of repeating the same skill.
+3. Keep each bullet to one line (about 25 words or fewer) and vary the action verbs.
+4. This work was done in hands-on virtual lab environments during training, so the bullets should fit under a "Technical Training" or "Hands-On Projects" section. Don't present it as paid job experience.
+5. After the bullets, list 8 to 12 keywords for the Skills section of my resume, taken from my notes.
+6. If a bullet would be stronger with a detail I didn't record, ask me about it at the end.
+
+MY NOTES:
+${notes}`;
+  return `${intro(days, label)}
+
+Using ONLY my notes below, write 3 to 5 interview stories in STAR format (Situation, Task, Action, Result) that I can use in IT job interviews.
+
+For each story:
+1. Give it a short title, then write it in 4 to 6 sentences, in first person.
+2. Make clear that it was hands-on lab work during my training (don't present it as a real job).
+3. Mention the specific technologies and the steps I took. If my notes describe a problem I had to troubleshoot, use it, because interviewers love those.
+4. End with the result and what I learned.
+5. Below each story, list 2 interview questions it answers well (for example "Tell me about a time you automated a task" or "How would you secure a virtual network?").
+
+Don't invent facts. If a story needs a detail I didn't record, ask me at the end.
+
+MY NOTES:
+${notes}`;
+}
+
+/* ---------- Study view ---------- */
+function renderStudy(){
+  const days = loggedDays();
+  if(!days.length){
+    main.innerHTML = `<section class="card empty"><h2>No entries yet</h2><p class="muted">Log a class day first. Your study prompts are built from what you write.</p><button class="btn primary" id="goToday">Log today</button></section>`;
+    $('#goToday').onclick = () => setView('today'); return;
+  }
+  const weeks = [...new Set(days.map(d=>weekOf(d.date)))].filter(w=>w>0).sort((a,b)=>a-b);
+  const courses = coursesIn(days);
+  const mode = st.studyMode;
+  let options = [];
+  if(mode === 'day') options = days.slice().reverse().map(d=>[d.date, `${fmtShort(d.date)}${weekOf(d.date)>0?` · Week ${weekOf(d.date)}`:''}${d.course?` · ${d.course}`:''}`]);
+  if(mode === 'week') options = weeks.slice().reverse().map(w=>[String(w), `Week ${w} (${fmtMD(weekStart(w))} to ${fmtMD(addDays(weekStart(w),3))})`]);
+  if(mode === 'course') options = courses.map(c=>[c,c]);
+  if(!options.some(o=>o[0]===st.studySel)) st.studySel = options.length ? options[0][0] : '';
+
+  let sel = [], label = '', wk = null;
+  if(mode === 'day'){ sel = days.filter(d=>d.date===st.studySel); label = sel[0] ? fmtLong(sel[0].date) : ''; wk = S.weeks[weekOf(st.studySel)]; }
+  if(mode === 'week'){ const w = Number(st.studySel); sel = days.filter(d=>weekOf(d.date)===w); label = `week ${w} of my training`; wk = S.weeks[w]; }
+  if(mode === 'course'){ sel = days.filter(d=>d.course===st.studySel); label = `my ${st.studySel} course`; }
+
+  main.innerHTML = `<div class="stack">
+    <section class="card">
+      <h2>Study prompts</h2>
+      <p class="lede">Two ways to study with AI. Pick what to study, then copy a prompt into the AI tool of your choice.</p>
+      <div class="controls" style="margin-top:14px">
+        <div><span class="q small">Study by</span><div class="seg" role="group">${[['day','Day'],['week','Week'],['course','Course']].map(([k,l])=>`<button data-mode="${k}" aria-pressed="${mode===k}">${l}</button>`).join('')}</div></div>
+        <label class="field"><span class="q small">${mode==='day'?'Day':mode==='week'?'Week':'Course'}</span>
+          <select id="studySel">${options.length ? options.map(([v,l])=>`<option value="${esc(v)}" ${v===st.studySel?'selected':''}>${esc(l)}</option>`).join('') : '<option>Nothing logged with a course yet</option>'}</select></label>
+      </div>
+    </section>
+    ${sel.length ? promptCardsHTML(sel, label, wk) : `<div class="card muted">${mode==='course' ? 'Choose a course on your daily logs to study by course.' : 'Nothing to show.'}</div>`}
+    <section class="card small muted"><b>Tip:</b> use the Listener after class to make sure you understand, and the Examiner before a quiz or exam to find your level. Getting ready for interviews? Try the interview stories in <b>Summaries &amp; bullets</b>.</section>
+  </div>`;
+  main.onclick = e => { const b = e.target.closest('[data-mode]'); if(b){ st.studyMode = b.dataset.mode; st.studySel=''; renderStudy(); } };
+  const s = $('#studySel'); if(s) s.onchange = e => { st.studySel = e.target.value; renderStudy(); };
+}
+
+/* ---------- Timeline ---------- */
+function renderTimeline(){
+  const days = loggedDays();
+  const today = todayISO(), curW = weekOf(today);
+  const labs = days.reduce((n,d)=>n+labsOf(d).length, 0);
+  const techCount = new Set(days.flatMap(d=>labsOf(d).flatMap(l=>l.techs.map(t=>t.toLowerCase())))).size;
+  const start = mondayOf(S.settings.startDate);
+  let classDaysSoFar = 0;
+  for(let i=0;i<TOTAL_WEEKS*7;i++){ const d = addDays(start,i); if(d>today) break; const k=dow(d); if(k>=1&&k<=4) classDaysSoFar++; }
+  const pct = classDaysSoFar ? Math.min(100, Math.round(days.filter(d=>dow(d.date)>=1&&dow(d.date)<=4).length/classDaysSoFar*100)) : 0;
+  const weekPct = curW ? Math.max(0, Math.min(100, Math.round(Math.min(curW,TOTAL_WEEKS)/TOTAL_WEEKS*100))) : 0;
+
+  let weeksHTML = '';
+  for(let w=1; w<=TOTAL_WEEKS; w++){
+    const ws = weekStart(w);
+    const wd = [0,1,2,3,4].map(k=>addDays(ws,k));
+    const logged = wd.slice(0,4).filter(d=>hasContent(S.days[d])).length;
+    const wlabs = wd.reduce((n,d)=>n+(S.days[d]?labsOf(S.days[d]).length:0),0);
+    const future = ws > today;
+    const wk = S.weeks[w]; const reviewed = wk && (clean(wk.wins)||clean(wk.unclear)||clean(wk.focus)||wk.confidence);
+    const rows = wd.map((d,k)=>{
+      if(k===4) return `<button class="dayrow" data-goto="${d}"><b>${esc(fmtShort(d))}</b><span class="c">Weekly review</span><span class="labs small muted">${wk&&wk.confidence?`Confidence ${wk.confidence}/5`:''}</span>${reviewed?'<span class="pill ok">Done</span>':'<span class="pill">Not yet</span>'}</button>`;
+      const e = S.days[d];
+      const status = !hasContent(e) ? (d>today?'<span class="pill">Upcoming</span>':'<span class="pill">Not logged</span>') : isComplete(e) ? '<span class="pill ok">Complete</span>' : '<span class="pill draft">Draft</span>';
+      return `<button class="dayrow" data-goto="${d}"><b>${esc(fmtShort(d))}</b><span class="c">${esc(e&&hasContent(e)?(e.course||linesOf(e.topics)[0]||''):'')}</span><span class="labs small muted">${e?labsOf(e).length:0} labs</span>${status}</button>`;
+    }).join('');
+    weeksHTML += `<details class="week ${w===curW?'current':''} ${future?'future':''}" ${w===curW || (curW>TOTAL_WEEKS && w===TOTAL_WEEKS) ? 'open':''}>
+      <summary><span class="week-title">Week ${w}<span>${fmtMD(ws)} to ${fmtMD(addDays(ws,3))}</span></span>
+        <span class="actions-row" style="gap:6px">${w===curW?'<span class="pill purple">This week</span>':''}<span class="pill">${logged}/4 days</span><span class="pill">${wlabs} labs</span></span></summary>
+      <div class="dayrows">${rows}</div></details>`;
+  }
+  main.innerHTML = `<div class="stack">
+    <section class="tiles">
+      <div class="tile"><div class="num">${curW<1?'–':Math.min(curW,TOTAL_WEEKS)}<span class="muted" style="font-size:1rem"> / ${TOTAL_WEEKS}</span></div><div class="lbl">Week of training</div><div class="progress"><div style="width:${weekPct}%"></div></div></div>
+      <div class="tile"><div class="num">${days.length}</div><div class="lbl">Days logged · ${pct}% of class days so far</div><div class="progress"><div style="width:${pct}%"></div></div></div>
+      <div class="tile"><div class="num">${labs}</div><div class="lbl">Labs logged</div></div>
+      <div class="tile"><div class="num">${techCount}</div><div class="lbl">Technologies used</div></div>
+    </section>
+    ${weeksHTML}
+  </div>`;
+  main.onclick = e => { const g = e.target.closest('[data-goto]'); if(g){ st.cur = g.dataset.goto; setView('today'); } };
+}
+
+/* ---------- Summaries & bullets ---------- */
+function renderSummaries(){
+  const all = loggedDays();
+  const weeks = [...new Set(all.map(d=>weekOf(d.date)))].filter(w=>w>0).sort((a,b)=>a-b);
+  const courses = coursesIn(all);
+  if(!st.sumWeek && weeks.length) st.sumWeek = String(weeks[weeks.length-1]);
+  if(!st.sumCourse && courses.length) st.sumCourse = courses[0];
+  if(!st.sumFrom && all.length){ st.sumFrom = all[0].date; st.sumTo = all[all.length-1].date; }
+
+  let days = all, label = 'my training so far';
+  if(st.sumRange==='week'){ const w = Number(st.sumWeek); days = all.filter(d=>weekOf(d.date)===w); label = `week ${w} of my training`; }
+  if(st.sumRange==='course'){ days = all.filter(d=>d.course===st.sumCourse); label = `my ${st.sumCourse} course`; }
+  if(st.sumRange==='range'){ days = all.filter(d=>d.date>=st.sumFrom && d.date<=st.sumTo); label = `${st.sumFrom ? fmtLong(st.sumFrom):''} to ${st.sumTo ? fmtLong(st.sumTo):''}`; }
+
+  const types = [['bullets','Resume bullets',ICON.bullets,'c-teal'],['summary','Training summary',ICON.summary,'c-blue'],['star','Interview stories (STAR)',ICON.star,'c-purple']];
+  let promptHTML = '';
+  if(days.length){
+    const text = summaryPrompt(st.sumType, days, label);
+    const id = regPrompt(text);
+    const long = text.length > 12000;
+    promptHTML = `<section class="card">
+      <div class="card-head"><h3>Your prompt</h3><span class="charcount ${long?'warn':''}">${text.length.toLocaleString()} characters${long?' · may be too long for some AI tools. Try a smaller range.':''}</span></div>
+      <pre class="prompt" style="max-height:280px">${esc(text)}</pre>
+      <div class="actions-row" style="margin-top:12px"><button class="btn primary" data-copy="${id}">Copy prompt</button><span class="muted small">Paste it into your AI tool. ${st.sumType==='bullets' ? 'Then save the bullets you like below.' : ''}</span></div>
+    </section>`;
+  }
+
+  // At a glance
+  const techMap = new Map(), actMap = new Map();
+  days.forEach(d=>labsOf(d).forEach(l=>{ l.techs.forEach(t=>{ const k=t.toLowerCase(); const v=techMap.get(k)||{name:t,n:0}; v.n++; techMap.set(k,v); }); l.actions.forEach(a=>actMap.set(a,(actMap.get(a)||0)+1)); }));
+  const topTech = [...techMap.values()].sort((a,b)=>b.n-a.n).slice(0,18);
+  const nLabs = days.reduce((n,d)=>n+labsOf(d).length,0);
+
+  main.innerHTML = `<div class="stack">
+    <section class="card">
+      <h2>Summaries &amp; resume bullets</h2>
+      <p class="lede">The app pulls together everything you've logged and writes a prompt for your AI tool. Your AI tool does the writing; your notes keep it accurate.</p>
+      ${all.length ? `
+      <div class="controls" style="margin-top:14px">
+        <div><span class="q small">What to include</span><div class="seg" role="group">${[['all','Everything'],['week','A week'],['course','A course'],['range','Date range']].map(([k,l])=>`<button data-range="${k}" aria-pressed="${st.sumRange===k}">${l}</button>`).join('')}</div></div>
+        ${st.sumRange==='week' ? `<label class="field"><span class="q small">Week</span><select id="sumWeek">${weeks.map(w=>`<option value="${w}" ${String(w)===st.sumWeek?'selected':''}>Week ${w}</option>`).join('')}</select></label>` : ''}
+        ${st.sumRange==='course' ? `<label class="field"><span class="q small">Course</span><select id="sumCourse">${courses.length?courses.map(c=>`<option ${c===st.sumCourse?'selected':''}>${esc(c)}</option>`).join(''):'<option>No courses chosen yet</option>'}</select></label>` : ''}
+        ${st.sumRange==='range' ? `<label class="field" style="min-width:150px"><span class="q small">From</span><input type="date" id="sumFrom" value="${st.sumFrom}"></label><label class="field" style="min-width:150px"><span class="q small">To</span><input type="date" id="sumTo" value="${st.sumTo}"></label>` : ''}
+      </div>
+      <div style="margin-top:14px"><span class="q small">What do you want?</span>
+        <div class="prompt-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">${types.map(([k,l,ic,c])=>`<button class="pcard" data-type="${k}" aria-pressed="${st.sumType===k}" style="cursor:pointer;text-align:left;flex-direction:row;align-items:center;padding:12px;${st.sumType===k?'border-color:var(--teal);box-shadow:0 0 0 2px color-mix(in srgb,var(--teal) 30%,transparent)':''}"><span class="pcard-icon ${c}">${ic}</span><b>${l}</b></button>`).join('')}</div>
+      </div>` : `<div class="notice info" style="margin-top:12px">Nothing logged yet. Once you log a few days, you can build summaries and bullets here.</div>`}
+    </section>
+    ${all.length ? (days.length ? `
+    <section class="card">
+      <div class="card-head"><h3>At a glance</h3><span class="muted small">${days.length} days · ${nLabs} labs</span></div>
+      ${topTech.length ? `<div class="chips">${topTech.map(t=>`<span class="tag static">${esc(t.name)} · ${t.n}</span>`).join('')}</div>` : '<p class="muted small">No technologies recorded in this range yet.</p>'}
+      ${actMap.size ? `<p class="muted small" style="margin:8px 0 0">${[...actMap.entries()].sort((a,b)=>b[1]-a[1]).map(([a,n])=>`${a} ×${n}`).join(' · ')}</p>` : ''}
+    </section>
+    ${promptHTML}` : `<div class="card muted">No entries in this range.</div>`) : ''}
+    <section class="card">
+      <div class="card-head"><h3>My resume bullets</h3>${S.bullets.length?`<button class="btn small" id="copyAll">Copy all</button>`:''}</div>
+      <p class="lede small" style="margin-top:-6px">Paste the bullets you like from your AI tool here (one per line) so they stay with your training record.</p>
+      <textarea id="newBullets" rows="3" style="margin-top:10px" placeholder="Configured Azure Virtual Networks and Network Security Groups to segment workloads and block unauthorized inbound traffic."></textarea>
+      <div class="actions-row" style="margin-top:10px"><button class="btn primary small" id="addBullets">Save bullets</button></div>
+      ${S.bullets.length ? `<ul class="bullet-list">${S.bullets.map((b,i)=>`<li><span class="t">${esc(b.text)}</span><button class="btn ghost small" data-cpb="${i}">Copy</button><button class="btn ghost small danger" data-rmb="${i}" aria-label="Delete bullet">Delete</button></li>`).join('')}</ul>` : ''}
+    </section>
+  </div>`;
+
+  main.onclick = e => {
+    const t = e.target;
+    const r = t.closest('[data-range]'); if(r){ st.sumRange = r.dataset.range; return renderSummaries(); }
+    const ty = t.closest('[data-type]'); if(ty){ st.sumType = ty.dataset.type; return renderSummaries(); }
+    if(t.id === 'addBullets'){
+      const lines = linesOf($('#newBullets').value);
+      if(!lines.length) return;
+      lines.forEach(x=>S.bullets.push({text:x, created:Date.now()})); saveNow(); renderSummaries();
+      toast(`${lines.length} bullet${lines.length>1?'s':''} saved`); return;
+    }
+    if(t.id === 'copyAll'){ st.prompts.__all = S.bullets.map(b=>'• '+b.text).join('\n'); return copyText(st.prompts.__all); }
+    const c = t.closest('[data-cpb]'); if(c) return copyText(S.bullets[Number(c.dataset.cpb)].text);
+    const d = t.closest('[data-rmb]'); if(d){ if(confirm('Delete this bullet?')){ S.bullets.splice(Number(d.dataset.rmb),1); saveNow(); renderSummaries(); } }
+  };
+  main.onchange = e => {
+    const t = e.target;
+    if(t.id==='sumWeek') st.sumWeek = t.value;
+    else if(t.id==='sumCourse') st.sumCourse = t.value;
+    else if(t.id==='sumFrom') st.sumFrom = t.value;
+    else if(t.id==='sumTo') st.sumTo = t.value;
+    else return;
+    renderSummaries();
+  };
+}
+
+/* ---------- Settings ---------- */
+function exportData(){
+  saveNow();
+  S.settings.lastBackup = Date.now();
+  const blob = new Blob([JSON.stringify(S, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `from-labs-to-bullets-backup-${todayISO()}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+  saveNow(); toast('Backup downloaded. Keep it somewhere safe, like OneDrive.');
+  if(st.view==='settings') renderSettings();
+  else if(st.view==='today'){ const n = main.querySelector('.notice [data-export]'); if(n) n.closest('.notice').remove(); }
+}
+function importFile(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let data;
+    try { data = JSON.parse(reader.result); } catch(e){ return toast("That file isn't a valid backup."); }
+    if(!data || typeof data!=='object' || !data.days || !data.settings) return toast("That file isn't a From Labs to Bullets backup.");
+    const n = Object.keys(data.days).length;
+    if(loggedDays().length && !confirm(`Replace the diary on this laptop with the backup (${n} days)? Your current entries will be overwritten.`)) return;
+    S = normalize(data); saveNow(); toast(`Backup restored: ${n} days`); setView(S.settings.startDate ? 'timeline' : 'today');
+  };
+  reader.readAsText(file);
+}
+function renderSettings(){
+  const last = S.settings.lastBackup;
+  main.innerHTML = `<div class="stack">
+    <section class="card">
+      <h2>Training setup</h2>
+      <label class="field" style="margin-top:12px"><span class="q">Training start date</span>
+        <span class="hint">Your first day of class. Week numbers are counted from here.</span>
+        <input type="date" id="setStart" value="${S.settings.startDate}" style="max-width:220px"></label>
+      <label class="field"><span class="q">Your IT experience</span>
+        <span class="hint">Included in your study prompts so the AI's questions match your level.</span>
+        <select id="setLevel" style="max-width:420px">${levelOptions(S.settings.level)}</select></label>
+      <label class="field"><span class="q">Courses and modules</span>
+        <span class="hint">One per line. These appear in the "Course or module" list on your daily log.</span>
+        <textarea id="setCourses" rows="8">${esc(S.settings.courses.join('\n'))}</textarea></label>
+      <div class="actions-row"><button class="btn primary" id="saveSettings">Save setup</button><button class="btn ghost small" id="resetCourses">Restore default course list</button></div>
+    </section>
+    <section class="card">
+      <h2>Backup &amp; restore</h2>
+      <p class="lede">Your diary lives only in this browser. Download a backup every Friday and keep it in OneDrive or another safe place. You can restore it on a new laptop too.</p>
+      <p class="small muted">${last ? `Last backup: ${new Date(last).toLocaleString()}` : 'No backup downloaded yet.'}</p>
+      <div class="actions-row">
+        <button class="btn primary" data-export>Download backup</button>
+        <label class="btn" style="cursor:pointer">Restore from file<input type="file" id="importS" accept="application/json,.json" hidden></label>
+      </div>
+      ${storageOK ? '' : '<div class="notice" style="margin-top:12px">This browser is blocking storage, so entries may not be saved between visits. Download a backup before you close the page.</div>'}
+    </section>
+    <section class="card">
+      <h2>Start over</h2>
+      <p class="lede">Permanently erase every entry, review, and saved bullet from this browser.</p>
+      <div class="actions-row" style="margin-top:12px"><button class="btn danger" id="wipe">Erase all my data</button></div>
+    </section>
+  </div>`;
+  main.onclick = e => {
+    const t = e.target;
+    if(t.closest('[data-export]')) return exportData();
+    if(t.id === 'saveSettings'){
+      const sd = $('#setStart').value;
+      if(!isValidISO(sd)){ $('#setStart').classList.add('invalid'); return toast('Please choose a start date.'); }
+      const cs = linesOf($('#setCourses').value);
+      S.settings.startDate = sd; S.settings.level = $('#setLevel').value; S.settings.courses = cs.length ? cs : DEFAULT_COURSES.slice();
+      saveNow(); updateBadge(); toast('Setup saved');
+    }
+    if(t.id === 'resetCourses'){ $('#setCourses').value = DEFAULT_COURSES.join('\n'); }
+    if(t.id === 'wipe'){
+      if(confirm('Erase ALL your diary entries, reviews, and bullets from this browser? This cannot be undone. (Tip: download a backup first.)') && confirm('Are you sure? Everything will be deleted.')){
+        S = fresh(); saveNow(); st.cur = todayISO(); render(); toast('All data erased');
+      }
+    }
+  };
+  $('#importS').onchange = e => importFile(e.target.files[0]);
+}
+
+/* ---------- Boot ---------- */
+setView('today');
+})();
+</script>
+</body>
+</html>
