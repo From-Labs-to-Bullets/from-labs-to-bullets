@@ -2,7 +2,7 @@
 
 **A daily technical training diary for IT students. It turns hands-on labs into study prompts, training summaries, and resume bullets.**
 
-👉 **Open the app:** https://github.com/Labs-to-Bullets/from-labs-to-bullets/
+👉 **Open the app:** https://from-labs-to-bullets.github.io/from-labs-to-bullets/
 
 ---
 
