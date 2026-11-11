@@ -89,7 +89,7 @@ Each can cover all of training, a single week, a course, or a date range.
 - **No accounts, no sign-in, no server.** Everything you type is saved in your web browser, on your own computer.
 - **Nobody else can see your entries,** including your instructor and the people who maintain this repository.
 - **Turn on auto-save.** The last setup step asks students to choose a file, ideally in their **OneDrive** folder. The app then saves the diary to that file every time they type, so clearing the browser's data never erases their work. Auto-save can also be turned on or changed later in **Settings & backup**.
-- **Edge may ask for permission on later visits.** It asks to let the app keep editing the file; students choose **Allow on every visit**.
+- **Edge asks for permission during the first few visits.** The app shows **Auto-save is paused**; students click **Resume auto-save**, then **Allow**. From the second return visit, Edge also offers **Allow on every visit**. Once students choose it, Edge stops asking.
 - **Browser data cleared, or a new computer?** Open the app, choose **I already have a diary file** (or **Open my diary file** in **Settings & backup**), and pick the file. Everything comes back, up to the last thing typed.
 - **Use Microsoft Edge on your computer.** Auto-save works in Edge and Chrome on a computer, not in Firefox, Safari, or on phones. Don't use InPrivate windows.
 - **Without auto-save, download a backup every Friday** from **Settings & backup**. Students who skip auto-save see a weekly reminder to turn it on and backup reminders.

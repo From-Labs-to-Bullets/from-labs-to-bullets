@@ -485,13 +485,17 @@ function fileStatusHTML(){
 function refreshFileUI(stateChanged){
   const el = $('#fileStatus'); if(el) el.innerHTML = fileStatusHTML();
   const f = $('#footNote');
-  if(f && FS_OK) f.innerHTML = AS.state === 'on' ? `Auto-save is on: your diary is also saved to <b>${esc(AS.handle.name)}</b>.` : 'Your entries are stored in this browser. Turn on auto-save in <b>Settings &amp; backup</b> so you never lose them.';
+  if(f && FS_OK) f.innerHTML =
+    AS.state === 'on' ? `Auto-save is on: your diary is also saved to <b>${esc(AS.handle.name)}</b>.` :
+    AS.state === 'paused' ? `Auto-save is paused. Click <b>Resume auto-save</b> to keep saving to <b>${esc(AS.handle.name)}</b>.` :
+    AS.state === 'problem' ? 'Auto-save needs attention. Open <b>Settings &amp; backup</b> to fix it.' :
+    'Your entries are stored in this browser. Turn on auto-save in <b>Settings &amp; backup</b> so you never lose them.';
   if(stateChanged && (st.view === 'settings' || st.view === 'today') && !main.contains(document.activeElement)) render();
 }
 // Banner shown at the top of Today when auto-save needs attention, or as a weekly reminder.
 function fileBannerHTML(){
   if(!FS_OK) return backupNudge();
-  if(AS.state === 'paused') return `<div class="notice info small actions-row" style="justify-content:space-between"><span><b>Auto-save is paused.</b> Click to keep saving your diary to ${esc(AS.handle.name)}.</span><button class="btn primary small" data-fs="resume">Resume auto-save</button></div>`;
+  if(AS.state === 'paused') return `<div class="notice info small actions-row" style="justify-content:space-between"><span><b>Auto-save is paused.</b> Click the button, then <b>Allow</b>, to keep saving your diary to ${esc(AS.handle.name)}. If Edge offers <b>Allow on every visit</b>, choose it so Edge stops asking.</span><button class="btn primary small" data-fs="resume">Resume auto-save</button></div>`;
   if(AS.state === 'problem') return `<div class="notice small actions-row" style="justify-content:space-between"><span><b>Auto-save needs attention.</b> ${AS.problem === 'missing' ? "We can't find your diary file. It may have been moved or renamed." : "We couldn't use your diary file."}</span><span class="actions-row"><button class="btn small" data-fs="open">Find my file</button><button class="btn small" data-fs="on">Save to a new file</button></span></div>`;
   if(AS.state === 'on') return '';
   if(st.skippedAutoSave) return `<div class="notice info small actions-row" style="justify-content:space-between"><span>No problem. You can turn on auto-save any time in <b>Settings &amp; backup</b>. Until then, download a backup every Friday so you don't lose your work.</span><button class="btn ghost small" data-fs="hideskip" aria-label="Dismiss">Got it</button></div>`;
@@ -625,7 +629,7 @@ function renderAutoSaveStep(finish){
       <li>Only you can see the file</li>
       <li>Nothing else changes about how you use the app</li>
     </ul>
-    <div class="notice info small" style="margin-bottom:16px"><b>What happens next:</b> Edge opens a Save window. Choose your <b>OneDrive</b> folder (or <b>Documents</b>) and click <b>Save</b>. On later visits, Edge may ask to let the app keep editing the file. Choose <b>Allow on every visit</b>.</div>
+    <div class="notice info small" style="margin-bottom:16px"><b>What happens next:</b> Edge opens a Save window. Choose your <b>OneDrive</b> folder (or <b>Documents</b>) and click <b>Save</b>. For your first few visits, the app may show <b>Auto-save is paused</b>. Click <b>Resume auto-save</b>, then <b>Allow</b>. When Edge offers <b>Allow on every visit</b>, choose it and Edge stops asking.</div>
     <div class="actions-row">
       <button class="btn primary" id="asOn">Turn on auto-save (recommended)</button>
       <button class="btn ghost" id="asSkip">Skip for now</button>
