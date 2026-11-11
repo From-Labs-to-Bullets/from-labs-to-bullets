@@ -115,7 +115,7 @@ input.short{max-width:120px}
 .chip:hover{border-color:var(--purple);color:var(--text)}
 .chip.on{background:var(--purple-soft);border-color:var(--purple);color:var(--purple)}
 .tagbox{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:6px;margin-top:8px}
-.tagbox input{flex:1;min-width:180px;border:0!important;background:transparent!important;box-shadow:none!important;padding:4px 6px}
+.tagbox input{flex:1;min-width:min(180px,100%);border:0!important;background:transparent!important;box-shadow:none!important;padding:4px 6px}
 .tag{display:inline-flex;align-items:center;gap:4px;background:var(--teal-soft);color:var(--teal);font-size:.84rem;font-weight:600;padding:3px 4px 3px 10px;border-radius:999px}
 .tag button{border:0;background:none;color:inherit;font-size:1rem;line-height:1;padding:0 5px;border-radius:999px}
 .tag button:hover{background:color-mix(in srgb,var(--teal) 20%,transparent)}
@@ -132,10 +132,10 @@ input.short{max-width:120px}
 .seg button{border:0;background:none;color:var(--muted);padding:7px 14px;border-radius:8px;font-weight:600;font-size:.88rem}
 .seg button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
 .controls{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
-.controls .field{margin:0;flex:1;min-width:200px}
+.controls .field{margin:0;flex:1;min-width:min(200px,100%)}
 
 /* Prompt cards */
-.prompt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;align-items:start}
+.prompt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:14px;align-items:start}
 .pcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow)}
 .pcard-top{display:flex;align-items:center;gap:10px}
 .pcard-icon{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;flex:none}
@@ -1069,7 +1069,7 @@ function renderSummaries(){
         ${st.sumRange==='range' ? `<label class="field" style="min-width:150px"><span class="q small">From</span><input type="date" id="sumFrom" value="${st.sumFrom}"></label><label class="field" style="min-width:150px"><span class="q small">To</span><input type="date" id="sumTo" value="${st.sumTo}"></label>` : ''}
       </div>
       <div style="margin-top:14px"><span class="q small">What do you want?</span>
-        <div class="prompt-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">${types.map(([k,l,ic,c])=>`<button class="pcard" data-type="${k}" aria-pressed="${st.sumType===k}" style="cursor:pointer;text-align:left;flex-direction:row;align-items:center;padding:12px;${st.sumType===k?'border-color:var(--teal);box-shadow:0 0 0 2px color-mix(in srgb,var(--teal) 30%,transparent)':''}"><span class="pcard-icon ${c}">${ic}</span><b>${l}</b></button>`).join('')}</div>
+        <div class="prompt-grid" style="grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:10px">${types.map(([k,l,ic,c])=>`<button class="pcard" data-type="${k}" aria-pressed="${st.sumType===k}" style="cursor:pointer;text-align:left;flex-direction:row;align-items:center;padding:12px;${st.sumType===k?'border-color:var(--teal);box-shadow:0 0 0 2px color-mix(in srgb,var(--teal) 30%,transparent)':''}"><span class="pcard-icon ${c}">${ic}</span><b>${l}</b></button>`).join('')}</div>
       </div>` : `<div class="notice info" style="margin-top:12px">Nothing logged yet. Once you log a few days, you can build summaries and bullets here.</div>`}
     </section>
     ${all.length ? (days.length ? `
@@ -1185,7 +1185,7 @@ function renderSettings(){
     if(t.id === 'resetCourses'){ $('#setCourses').value = DEFAULT_COURSES.join('\n'); }
     if(t.id === 'wipe'){
       if(confirm('Erase ALL your diary entries, reviews, and bullets from this browser? This cannot be undone. (Tip: download a backup first.)') && confirm('Are you sure? Everything will be deleted.')){
-        S = fresh(); saveNow(); st.cur = todayISO(); render(); toast('All data erased');
+        S = fresh(); saveNow(); st.cur = todayISO(); setView('today'); toast('All data erased');
       }
     }
   };
