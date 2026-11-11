@@ -245,8 +245,8 @@ const DEFAULT_COURSES = [
 const SEED_TECH = ['PowerShell','Azure CLI','Azure Portal','Azure Cloud Shell','Azure Virtual Machines','Azure Virtual Network','Network Security Groups','Azure Load Balancer','Azure DNS','Azure Storage','Azure Blob Storage','Azure Files','Azure Backup','Azure App Service','Azure Monitor','Log Analytics','Azure Policy','Azure RBAC','Azure Resource Manager','ARM templates','Bicep','Azure Key Vault','Microsoft Entra ID','Conditional Access','Multifactor authentication','Privileged Identity Management','Microsoft Intune','Windows Autopilot','Microsoft 365 admin center','Windows Server','Windows Admin Center','Server Manager','Active Directory Domain Services','Group Policy','DNS','DHCP','Hyper-V','Storage Spaces','Failover Clustering','iSCSI','Ubuntu','Bash','SSH','systemd','apt','Git','GitHub','GitHub Actions','Azure DevOps','Azure Pipelines','Azure Repos','Docker','Azure Container Instances','Azure Kubernetes Service','Azure AI services','Azure OpenAI','Microsoft Copilot'];
 const LEVELS = {
   new:     { label:'New to IT', text:"I'm new to IT, so start at an entry level and build up." },
-  some:    { label:'Some IT experience (help desk, home lab, or earlier classes)', text:'I have some IT experience, but much of this material is new to me.' },
-  working: { label:'Already working in IT', text:'I already work in IT, so you can move quickly past the basics.' }
+  some:    { label:'Some IT exposure (classes, certifications, home lab, or self-study)', text:"I've had some exposure to IT through classes, certifications, or self-study, but much of this material is new to me." },
+  working: { label:'Previous IT work experience (military or civilian)', text:'I have previous IT work experience, so you can move quickly past the basics. Some of these tools and technologies may still be new to me.' }
 };
 const levelOptions = sel => Object.entries(LEVELS).map(([k,v])=>`<option value="${k}" ${k===sel?'selected':''}>${esc(v.label)}</option>`).join('');
 const ACTIONS = ['Built','Configured','Deployed','Automated','Secured','Troubleshot','Installed','Managed','Monitored','Migrated'];
