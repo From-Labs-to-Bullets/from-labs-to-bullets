@@ -286,6 +286,7 @@ const $ = (s,r=document) => r.querySelector(s);
 const $$ = (s,r=document) => [...r.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clean = s => String(s ?? '').trim();
+const labsText = n => n === 1 ? '1 lab' : `${n} labs`;
 const linesOf = s => String(s||'').split(/\r?\n/).map(x=>x.replace(/^[-*•\s]+/,'').trim()).filter(Boolean);
 function linkify(text){
   return esc(text).replace(/(https?:\/\/[^\s<]+)/g, u => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
@@ -345,6 +346,12 @@ function saveNow(){
 function saveSoon(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 350); }
 window.addEventListener('beforeunload', ()=>{ if(saveTimer) saveNow(); });
 document.addEventListener('visibilitychange', ()=>{ if(document.hidden){ if(saveTimer) saveNow(); if(fileTimer){ clearTimeout(fileTimer); fileTimer = null; writeFile(); } } });
+// If the app is open in two tabs, keep them in step: when one tab saves, the other reloads the diary,
+// so an older tab can never overwrite newer entries.
+window.addEventListener('storage', e => {
+  if(e.key !== KEY || !e.newValue) return;
+  try { clearTimeout(saveTimer); saveTimer = null; S = normalize(JSON.parse(e.newValue)); st.entry = null; render(); } catch(err){}
+});
 
 /* ---------- Auto-save to a file (Edge and Chrome on a computer) ----------
    The browser copy stays the working copy. When auto-save is on, every save is
@@ -989,7 +996,7 @@ function dailyClick(ev){
     persistEntry(); saveNow();
     $('#afterSave').innerHTML = `<section class="stack" style="margin-top:20px">
       <div class="notice ok"><b>${miss.length ? 'Saved as a draft.' : 'Day saved. Nice work!'}</b> Now lock it in: pick a study style below, copy the prompt, and paste it into your AI tool.</div>
-      ${promptCardsHTML([e], 'today')}</section>`;
+      ${promptCardsHTML([e], e.date === todayISO() ? 'today' : `my class on ${fmtLong(e.date)}`)}</section>`;
     $('#afterSave').scrollIntoView({behavior:'smooth', block:'start'});
     toast(miss.length ? 'Draft saved' : 'Day saved ✓');
   }
@@ -1005,7 +1012,7 @@ function reviewHTML(date){
   const days = weekDays(w).map(d => {
     const e = S.days[d];
     const status = !hasContent(e) ? `<span class="pill">Not logged</span>` : isComplete(e) ? `<span class="pill ok">Complete</span>` : `<span class="pill draft">Draft</span>`;
-    return `<button type="button" class="dayrow" data-goto="${d}"><b>${esc(fmtShort(d))}</b><span class="c">${esc(e&&hasContent(e)?dayLabelText(e):'')}</span><span class="labs small muted">${e?labsOf(e).length:0} labs</span>${status}</button>`;
+    return `<button type="button" class="dayrow" data-goto="${d}"><b>${esc(fmtShort(d))}</b><span class="c">${esc(e&&hasContent(e)?dayLabelText(e):'')}</span><span class="labs small muted">${labsText(e?labsOf(e).length:0)}</span>${status}</button>`;
   }).join('');
   return `<section class="card" style="padding:0;overflow:hidden">
       <div style="padding:18px 18px 10px"><h2>Week ${w} at a glance</h2><p class="lede small">Tap a day to fill in or fix anything you missed.</p></div>
@@ -1025,7 +1032,7 @@ function reviewHTML(date){
       <div class="actions-row"><button type="button" class="btn primary" id="weekPrompts">Get my weekly summary &amp; study prompts</button><span class="muted small">Saves automatically.</span></div>
     </form>
     <section class="card actions-row" style="justify-content:space-between">
-      <div><h3>Friday backup</h3><p class="lede small">Download a copy of your diary so you never lose your work.</p></div>
+      <div><h3>Friday backup</h3><p class="lede small">${AS.state === 'on' ? 'Auto-save keeps your diary file up to date, so this is optional. You can still download an extra copy.' : 'Download a copy of your diary so you never lose your work.'}</p></div>
       <button class="btn" data-export>Download backup</button>
     </section>
     <div id="afterSave"></div>`;
@@ -1283,7 +1290,7 @@ function renderStudy(){
   if(mode === 'refresh'){
     sel = refreshPick(days);
     const ws = [...new Set(sel.map(d=>weekOf(d.date)).filter(w=>w>0))];
-    label = `a review mix from earlier in my training${ws.length ? ` (week${ws.length>1?'s':''} ${ws.join(', ')})` : ''}`;
+    label = `earlier weeks of my training${ws.length ? ` (week${ws.length>1?'s':''} ${ws.join(', ')})` : ''}`;
   }
   if(mode === 'day'){ sel = days.filter(d=>d.date===st.studySel); label = sel[0] ? fmtLong(sel[0].date) : ''; wk = S.weeks[weekOf(st.studySel)]; }
   if(mode === 'week'){ const w = Number(st.studySel); sel = days.filter(d=>weekOf(d.date)===w); label = `week ${w} of my training`; wk = S.weeks[w]; }
@@ -1335,11 +1342,11 @@ function renderTimeline(){
       if(k===4) return `<button class="dayrow" data-goto="${d}"><b>${esc(fmtShort(d))}</b><span class="c">Weekly review</span><span class="labs small muted">${wk&&wk.confidence?`Confidence ${wk.confidence}/5`:''}</span>${reviewed?'<span class="pill ok">Done</span>':'<span class="pill">Not yet</span>'}</button>`;
       const e = S.days[d];
       const status = !hasContent(e) ? (d>today?'<span class="pill">Upcoming</span>':'<span class="pill">Not logged</span>') : isComplete(e) ? '<span class="pill ok">Complete</span>' : '<span class="pill draft">Draft</span>';
-      return `<button class="dayrow" data-goto="${d}"><b>${esc(fmtShort(d))}</b><span class="c">${esc(e&&hasContent(e)?dayLabelText(e):'')}</span><span class="labs small muted">${e?labsOf(e).length:0} labs</span>${status}</button>`;
+      return `<button class="dayrow" data-goto="${d}"><b>${esc(fmtShort(d))}</b><span class="c">${esc(e&&hasContent(e)?dayLabelText(e):'')}</span><span class="labs small muted">${labsText(e?labsOf(e).length:0)}</span>${status}</button>`;
     }).join('');
     weeksHTML += `<details class="week ${w===curW?'current':''} ${future?'future':''}" ${w===curW || (curW>TOTAL_WEEKS && w===TOTAL_WEEKS) ? 'open':''}>
       <summary><span class="week-title">Week ${w}<span>${fmtMD(ws)} to ${fmtMD(addDays(ws,3))}</span></span>
-        <span class="actions-row" style="gap:6px">${w===curW?'<span class="pill purple">This week</span>':''}<span class="pill">${logged}/4 days</span><span class="pill">${wlabs} labs</span></span></summary>
+        <span class="actions-row" style="gap:6px">${w===curW?'<span class="pill purple">This week</span>':''}<span class="pill">${logged}/4 days</span><span class="pill">${labsText(wlabs)}</span></span></summary>
       <div class="dayrows">${rows}</div></details>`;
   }
   main.innerHTML = `<div class="stack">
@@ -1404,7 +1411,7 @@ function renderSummaries(){
     </section>
     ${all.length ? (days.length ? `
     <section class="card">
-      <div class="card-head"><h3>At a glance</h3><span class="muted small">${days.length} days · ${nLabs} labs</span></div>
+      <div class="card-head"><h3>At a glance</h3><span class="muted small">${days.length} day${days.length===1?'':'s'} · ${labsText(nLabs)}</span></div>
       ${topTech.length ? `<div class="chips">${topTech.map(t=>`<span class="tag static">${esc(t.name)} · ${t.n}</span>`).join('')}</div>` : '<p class="muted small">No technologies recorded in this range yet.</p>'}
       ${actMap.size ? `<p class="muted small" style="margin:8px 0 0">${[...actMap.entries()].sort((a,b)=>b[1]-a[1]).map(([a,n])=>`${a} ×${n}`).join(' · ')}</p>` : ''}
     </section>
