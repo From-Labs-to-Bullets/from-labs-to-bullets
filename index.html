@@ -225,7 +225,7 @@ footer{color:var(--muted);font-size:.8rem;text-align:center;padding:0 16px 30px}
   </nav>
 </header>
 <main class="wrap" id="main"></main>
-<footer>Your entries are stored only in this browser on this laptop. Use <b>Settings &amp; backup</b> to save a copy.</footer>
+<footer id="footNote">Your entries are stored only in this browser on this laptop. Use <b>Settings &amp; backup</b> to save a copy.</footer>
 <div id="toast" role="status" aria-live="polite"></div>
 <datalist id="techlist"></datalist>
 
@@ -337,12 +337,179 @@ let S = load();
 let saveTimer = null;
 function saveNow(){
   clearTimeout(saveTimer); saveTimer = null;
+  S.settings.savedAt = Date.now();
   try { localStorage.setItem(KEY, JSON.stringify(S)); storageOK = true; }
   catch(e){ if(storageOK) toast('Could not save in this browser. Download a backup in Settings.'); storageOK = false; }
+  queueFileWrite();
 }
 function saveSoon(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 350); }
 window.addEventListener('beforeunload', ()=>{ if(saveTimer) saveNow(); });
-document.addEventListener('visibilitychange', ()=>{ if(document.hidden && saveTimer) saveNow(); });
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden){ if(saveTimer) saveNow(); if(fileTimer){ clearTimeout(fileTimer); fileTimer = null; writeFile(); } } });
+
+/* ---------- Auto-save to a file (Edge and Chrome on a computer) ----------
+   The browser copy stays the working copy. When auto-save is on, every save is
+   mirrored to a file the student picked (ideally in OneDrive). On startup the two
+   are compared and the newer one wins, so clearing the browser loses nothing. */
+const FS_OK = typeof window.showSaveFilePicker === 'function' && window.isSecureContext;
+const AS = { handle:null, state:'off', lastWrite:null, writing:false, pending:false, problem:'' };
+// state: 'off' | 'on' | 'paused' (browser needs a click to allow editing) | 'problem' (file missing or unreadable)
+const FILE_TYPES = [{ description:'Training diary', accept:{'application/json':['.json']} }];
+function idb(mode, fn){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('fltb-files', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('handles');
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      const db = req.result, tx = db.transaction('handles', mode), r = fn(tx.objectStore('handles'));
+      tx.oncomplete = () => { db.close(); resolve(r && r.result); };
+      tx.onerror = () => { db.close(); reject(tx.error); };
+    };
+  });
+}
+const idbGet = k => idb('readonly', s => s.get(k));
+const idbSet = (k,v) => idb('readwrite', s => s.put(v,k));
+const idbDel = k => idb('readwrite', s => s.delete(k));
+
+let fileTimer = null;
+function queueFileWrite(){ if(AS.state !== 'on') return; clearTimeout(fileTimer); fileTimer = setTimeout(()=>{ fileTimer = null; writeFile(); }, 500); }
+async function writeFile(){
+  if(AS.state !== 'on' || !AS.handle) return;
+  if(AS.writing){ AS.pending = true; return; }
+  AS.writing = true;
+  try {
+    const w = await AS.handle.createWritable();
+    await w.write(JSON.stringify(S, null, 2));
+    await w.close();
+    AS.lastWrite = Date.now();
+  } catch(e){
+    if(e && e.name === 'NotAllowedError'){ AS.state = 'paused'; toast('Auto-save is paused. Click "Resume auto-save" to keep saving to your file.'); }
+    else if(e && e.name === 'NotFoundError'){ AS.state = 'problem'; AS.problem = 'missing'; toast("Auto-save can't find your diary file."); }
+    else { AS.state = 'problem'; AS.problem = 'write'; toast("Auto-save couldn't write to your diary file."); }
+    refreshFileUI(true);
+  } finally {
+    AS.writing = false;
+    if(AS.pending){ AS.pending = false; writeFile(); }
+  }
+  refreshFileUI(false);
+}
+// Compares the file with the browser copy. Loads the file if it is newer (or the browser is empty), otherwise writes to it.
+async function syncWithFile(){
+  let data = null;
+  try {
+    const text = await (await AS.handle.getFile()).text();
+    if(text.trim()) data = JSON.parse(text);
+  } catch(e){
+    AS.state = 'problem'; AS.problem = (e && e.name === 'NotFoundError') ? 'missing' : 'invalid';
+    return false;
+  }
+  if(data && !(data.settings && data.days)){ AS.state = 'problem'; AS.problem = 'invalid'; return false; }
+  AS.state = 'on'; AS.problem = '';
+  const fileAt = (data && data.settings.savedAt) || 0, localAt = S.settings.savedAt || 0;
+  const fileHasDays = data && Object.keys(data.days).length > 0;
+  if(data && (fileAt > localAt || (!loggedDays().length && fileHasDays))){
+    S = normalize(data);
+    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){}
+    AS.lastWrite = fileAt || null;
+    toast(`Diary loaded from ${AS.handle.name}`);
+  } else {
+    await writeFile();
+  }
+  return true;
+}
+async function turnOnAutoSave(){
+  let h;
+  try { h = await window.showSaveFilePicker({ suggestedName:'My training diary.json', types:FILE_TYPES, startIn:'documents', id:'fltb-diary' }); }
+  catch(e){ if(e && e.name !== 'AbortError') toast("Couldn't turn on auto-save. Please try again."); return false; }
+  AS.handle = h;
+  try { await idbSet('diary', h); } catch(e){}
+  saveNow();
+  const ok = await syncWithFile();
+  if(ok) toast(`Auto-save is on. Saving to ${h.name}`);
+  return ok;
+}
+async function openDiaryFile(){
+  let h;
+  try { [h] = await window.showOpenFilePicker({ types:FILE_TYPES, multiple:false, id:'fltb-diary' }); }
+  catch(e){ if(e && e.name !== 'AbortError') toast("Couldn't open that file."); return false; }
+  let data;
+  try { data = JSON.parse(await (await h.getFile()).text()); } catch(e){ toast("That file isn't a From Labs to Bullets diary."); return false; }
+  if(!data || !data.settings || !data.days){ toast("That file isn't a From Labs to Bullets diary."); return false; }
+  if(loggedDays().length && !confirm(`Replace the diary in this browser with ${h.name} (${Object.keys(data.days).length} days)?`)) return false;
+  S = normalize(data);
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){}
+  AS.handle = h;
+  try { await idbSet('diary', h); } catch(e){}
+  let perm = 'prompt';
+  try { perm = await h.requestPermission({ mode:'readwrite' }); } catch(e){}
+  AS.state = perm === 'granted' ? 'on' : 'paused';
+  AS.lastWrite = data.settings.savedAt || null;
+  toast(`Diary loaded from ${h.name}`);
+  return true;
+}
+async function resumeAutoSave(){
+  if(!AS.handle) return;
+  let perm = 'denied';
+  try { perm = await AS.handle.requestPermission({ mode:'readwrite' }); } catch(e){}
+  if(perm !== 'granted'){ toast('Edge needs your permission to keep saving to the file.'); return; }
+  await syncWithFile();
+  render();
+}
+async function turnOffAutoSave(quiet){
+  clearTimeout(fileTimer); fileTimer = null;
+  const name = AS.handle && AS.handle.name;
+  Object.assign(AS, { handle:null, state:'off', lastWrite:null, problem:'' });
+  try { await idbDel('diary'); } catch(e){}
+  if(!quiet) toast(`Auto-save is off. ${name ? name + ' was not deleted.' : ''}`);
+}
+async function initAutoSave(){
+  try { if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e){}
+  if(!FS_OK) return;
+  let h = null;
+  try { h = await idbGet('diary'); } catch(e){ return; }
+  if(!h) return;
+  AS.handle = h;
+  let perm = 'prompt';
+  try { perm = await h.queryPermission({ mode:'readwrite' }); } catch(e){}
+  if(perm === 'granted') await syncWithFile(); else AS.state = 'paused';
+  render();
+}
+function fmtTime(ms){ return new Date(ms).toLocaleString(undefined, { weekday:'short', hour:'numeric', minute:'2-digit' }); }
+function fileStatusHTML(){
+  const name = AS.handle ? `<b>${esc(AS.handle.name)}</b>` : 'your diary file';
+  if(AS.state === 'on') return `<span class="pill ok">On</span> Saving to ${name}${AS.lastWrite ? ` · last saved ${esc(fmtTime(AS.lastWrite))}` : ''}`;
+  if(AS.state === 'paused') return `<span class="pill draft">Paused</span> Edge needs one click to keep saving to ${name}.`;
+  if(AS.state === 'problem') return `<span class="pill draft">Needs attention</span> ${AS.problem === 'missing' ? `Can't find ${name}. It may have been moved, renamed, or deleted.` : AS.problem === 'invalid' ? `${name} doesn't look like a diary file.` : `Couldn't save to ${name}.`}`;
+  return '<span class="pill">Off</span> Your diary is saved only in this browser.';
+}
+// Small updates without a full re-render (so typing is never interrupted).
+function refreshFileUI(stateChanged){
+  const el = $('#fileStatus'); if(el) el.innerHTML = fileStatusHTML();
+  const f = $('#footNote');
+  if(f && FS_OK) f.innerHTML = AS.state === 'on' ? `Auto-save is on: your diary is also saved to <b>${esc(AS.handle.name)}</b>.` : 'Your entries are stored in this browser. Turn on auto-save in <b>Settings &amp; backup</b> so you never lose them.';
+  if(stateChanged && (st.view === 'settings' || st.view === 'today') && !main.contains(document.activeElement)) render();
+}
+// Banner shown at the top of Today when auto-save needs attention, or as a weekly reminder.
+function fileBannerHTML(){
+  if(!FS_OK) return backupNudge();
+  if(AS.state === 'paused') return `<div class="notice info small actions-row" style="justify-content:space-between"><span><b>Auto-save is paused.</b> Click to keep saving your diary to ${esc(AS.handle.name)}.</span><button class="btn primary small" data-fs="resume">Resume auto-save</button></div>`;
+  if(AS.state === 'problem') return `<div class="notice small actions-row" style="justify-content:space-between"><span><b>Auto-save needs attention.</b> ${AS.problem === 'missing' ? "We can't find your diary file. It may have been moved or renamed." : "We couldn't use your diary file."}</span><span class="actions-row"><button class="btn small" data-fs="open">Find my file</button><button class="btn small" data-fs="on">Save to a new file</button></span></div>`;
+  if(AS.state === 'on') return '';
+  if(st.skippedAutoSave) return `<div class="notice info small actions-row" style="justify-content:space-between"><span>No problem. You can turn on auto-save any time in <b>Settings &amp; backup</b>. Until then, download a backup every Friday so you don't lose your work.</span><button class="btn ghost small" data-fs="hideskip" aria-label="Dismiss">Got it</button></div>`;
+  const w = weekOf(todayISO()), snoozed = S.settings.autoSaveSnooze && (Date.now() - S.settings.autoSaveSnooze) < 7*864e5;
+  if(w >= 2 && loggedDays().length && !snoozed) return `<div class="notice info small actions-row" style="justify-content:space-between"><span><b>Turn on auto-save so you never lose your entries.</b> It saves your diary to a file on your computer every time you type.</span><span class="actions-row"><button class="btn primary small" data-fs="on">Turn on auto-save</button><button class="btn ghost small" data-fs="snooze">Not now</button></span></div>`;
+  return backupNudge();
+}
+// Shared click handling for auto-save buttons (data-fs="…") anywhere in the page.
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-fs]'); if(!b) return;
+  const a = b.dataset.fs;
+  if(a === 'on'){ if(await turnOnAutoSave()) render(); }
+  if(a === 'open'){ if(await openDiaryFile()){ st.cur = todayISO(); setView(S.settings.startDate ? 'today' : st.view); } }
+  if(a === 'resume') await resumeAutoSave();
+  if(a === 'off'){ await turnOffAutoSave(); render(); }
+  if(a === 'snooze'){ S.settings.autoSaveSnooze = Date.now(); saveNow(); render(); }
+  if(a === 'hideskip'){ st.skippedAutoSave = false; render(); }
+});
 
 const isInterview = d => !!d && d.type === 'interview';
 const labsOf = d => isInterview(d) ? [] : d.labs.slice(0, Number(d.labCount)||0).map(normLab);
@@ -397,9 +564,10 @@ function updateBadge(){
 
 function resetHandlers(){ main.onclick = main.oninput = main.onchange = main.onkeydown = null; main.removeEventListener('focusout', onTagBlur, true); }
 function render(){
-  resetHandlers(); st.prompts = {}; updateBadge(); refreshTechList();
+  resetHandlers(); st.prompts = {}; updateBadge(); refreshTechList(); refreshFileUI(false);
   if(!S.settings.startDate && st.view!=='settings') return renderWelcome();
   ({today:renderToday, study:renderStudy, timeline:renderTimeline, summaries:renderSummaries, settings:renderSettings})[st.view]();
+  refreshFileUI(false);
 }
 
 /* Global copy handler */
@@ -427,19 +595,48 @@ function renderWelcome(){
     <label class="field"><span class="q">How much IT experience do you have?</span>
       <span class="hint">Your study prompts tell the AI this, so its questions match your level. You can change it later.</span>
       <select id="levelW" style="max-width:420px">${levelOptions('new')}</select></label>
-    <div class="notice info small" style="margin-bottom:16px"><b>Private by design:</b> everything you type stays in this browser on this laptop. No account, nothing sent anywhere. Download a backup now and then from <b>Settings &amp; backup</b>.</div>
+    <div class="notice info small" style="margin-bottom:16px"><b>Private by design:</b> everything you type stays on your own computer. No account, nothing sent anywhere.</div>
     <div class="actions-row">
-      <button class="btn primary" id="startBtn">Get started</button>
+      <button class="btn primary" id="startBtn">${FS_OK ? 'Next' : 'Get started'}</button>
+      ${FS_OK ? '<button class="btn ghost" data-fs="open">I already have a diary file</button>' : ''}
       <label class="btn ghost" style="cursor:pointer">Restore from a backup file<input type="file" id="importW" accept="application/json,.json" hidden></label>
     </div>
   </section>`;
   $('#startBtn').onclick = () => {
     const v = $('#startDate').value;
     if(!isValidISO(v)){ $('#startDate').classList.add('invalid'); return; }
-    S.settings.startDate = v; S.settings.level = $('#levelW').value; saveNow(); st.cur = todayISO(); setView('today');
-    toast('All set. Log your first day!');
+    const level = $('#levelW').value;
+    const finish = () => { S.settings.startDate = v; S.settings.level = level; saveNow(); st.cur = todayISO(); setView('today'); };
+    if(!FS_OK){ finish(); toast('All set. Log your first day!'); return; }
+    renderAutoSaveStep(finish);
   };
   $('#importW').onchange = e => importFile(e.target.files[0]);
+}
+// Final setup step: explains why auto-save matters and turns it on.
+function renderAutoSaveStep(finish){
+  main.innerHTML = `
+  <section class="card welcome">
+    <p class="small muted" style="margin:0 0 4px">Last step</p>
+    <h2>Keep your diary safe</h2>
+    <p class="lede">Your entries are saved inside Edge. If Edge's data is ever cleared, by a cleanup tool, a reset, or a new computer, your entries are gone.</p>
+    <p><b>Auto-save</b> fixes that. The app also saves your diary to a file on your computer every time you type. Save it in your <b>OneDrive</b> folder and it's backed up online too.</p>
+    <ul>
+      <li>Takes about 30 seconds, once</li>
+      <li>Only you can see the file</li>
+      <li>Nothing else changes about how you use the app</li>
+    </ul>
+    <div class="notice info small" style="margin-bottom:16px"><b>What happens next:</b> Edge opens a Save window. Choose your <b>OneDrive</b> folder (or <b>Documents</b>) and click <b>Save</b>. On later visits, Edge may ask to let the app keep editing the file. Choose <b>Allow on every visit</b>.</div>
+    <div class="actions-row">
+      <button class="btn primary" id="asOn">Turn on auto-save (recommended)</button>
+      <button class="btn ghost" id="asSkip">Skip for now</button>
+    </div>
+  </section>`;
+  $('#asOn').onclick = async () => {
+    finish();                       // save the setup first, so the file starts with it
+    if(await turnOnAutoSave()) render();
+    else { st.skippedAutoSave = true; render(); }
+  };
+  $('#asSkip').onclick = () => { st.skippedAutoSave = true; finish(); };
 }
 
 /* ---------- Today ---------- */
@@ -476,7 +673,7 @@ function renderToday(){
   else if(day===5) body = reviewHTML(d);
   else body = dailyHTML(d);
   main.innerHTML = `<div class="stack">
-    ${backupNudge()}
+    ${fileBannerHTML()}
     <section class="card daybar">
       <button class="icon-btn" data-nav="-1" aria-label="Previous day">‹</button>
       <div class="daybar-mid"><input type="date" id="datePick" value="${d}" aria-label="Choose a date"><div class="daylabel">${dayLabel(d)}</div></div>
@@ -923,7 +1120,7 @@ const GROUND_RULES = `Ground rules:
 - If my notes include links and you can open them, use them. If you can't open them, rely on my notes and what you know.`;
 
 const ROLES = [
-  { key:'listener', name:'Listener', color:'c-purple', when:'Best after class: checks that you really understand.', tag:'You explain a topic in your own words. The AI grades your explanation and tells you what you missed.',
+  { key:'listener', name:'Listener', color:'c-purple', when:'Best for understanding: use it when a topic is new to you.', tag:'You explain a topic in your own words. The AI grades your explanation and tells you what you missed.',
     build:(days,label,wk)=>`Act as a strict but encouraging instructor who grades explanations. ${intro(days,label)}
 
 I'm going to explain a concept in my own words, as if I were teaching it to a new coworker.
@@ -944,23 +1141,26 @@ MY NOTES:
 ${notesBlock(days, {resources:true})}
 
 Start with the warm-up question.` },
-  { key:'examiner', name:'Examiner', color:'c-blue', when:'Best before a quiz or exam: shows your level.', tag:'Quizzes you one question at a time and gets harder until you miss, so you know your level.',
-    build:(days,label,wk)=>`Act as a certification exam coach. ${intro(days,label)}
-
-Quiz me on this material, ONE question at a time, using adaptive difficulty:
+  { key:'examiner', name:'Examiner', color:'c-blue', when:'Best for remembering: helps terms, commands and steps stick. Also a good warm-up for mock interviews.', tag:'The AI asks you questions one at a time from memory, then goes back over the ones you missed.',
+    build:(days,label,wk,opts={})=>`Act as a patient study coach whose goal is to help me remember what I've learned, so I'm ready to use it in a future IT job. ${intro(days,label)}
+${opts.refresh ? `
+This is a spaced review: I studied this material days or weeks ago and haven't looked at it since, so some of it may have faded. Spread your questions across ALL the dates in my notes, so every date gets at least one question, and don't just ask about the most recent one.
+` : ''}
+Ask me questions about this material, ONE at a time. I answer from memory, without looking at my notes. Use these levels to set the difficulty:
 - Level 1: definitions and recall
 - Level 2: understanding (explain why or compare two things)
 - Level 3: applying (which command, setting, or service would you use?)
 - Level 4: troubleshooting (something is broken, so what do you check first?)
-- Level 5: scenario questions, in the style of Microsoft certification exams
+- Level 5: scenarios, like a real job situation or a Microsoft certification exam question
 
 How this works:
-1. First, ask me one warm-up question: how confident do I feel about this material, from 1 (lost) to 5 (could teach it)? Start at level 1 if I answer 1 to 3, or level 2 if I answer 4 or 5.
-2. After each correct answer, move up one level. After a wrong answer, stay at the same level with a new question.
+1. First, ask me one warm-up question: how confident do I feel about this material, from 1 (lost) to 5 (could teach it)? Start at level 1 if I answer 1 to 3, or level 2 if I answer 4 or 5.${opts.refresh ? ' Because this is older material, start no higher than level 2.' : ''}
+2. After each correct answer, move up one level (up to level 5). After a wrong or partly right answer, stay at the same level and switch to a different topic for the next question.
 3. Mix question types: multiple choice, short answer, and "put these steps in order".
 4. Never show the answer before I respond. After I answer, tell me if I'm right, explain why in 2 to 3 sentences, and name the Microsoft Learn concept the question tests.
-5. After every answer, show my running score in this format: "Level 3 · Correct: 4 · Misses at this level: 1".
-6. When I miss two questions at the same level, stop the quiz. Tell me my level (1 to 5), list what I got wrong, and tell me exactly what to review.
+5. Keep a list of every question I miss or only partly get right. After every answer, show my progress in this format: "Level 3 · Correct: 4 · To practice: 2".
+6. After about 10 questions, or sooner if I type "done", go back to the questions on my "To practice" list. Ask each one again, worded differently. If I get it right this time, tell me it's fixed. If I miss it again, explain it once more with a simple example or a memory aid.
+7. Finish with a short "Practice next time" list: each concept I still missed, a one-sentence way to remember it, and the Microsoft Learn topic to review. Don't give me a grade or a final level. Remind me that coming back to these in a few days is what makes them stick.
 
 ${GROUND_RULES}
 ${weakSpot(wk)}
@@ -970,12 +1170,13 @@ ${notesBlock(days, {resources:true})}
 Start with the warm-up question.` }
 ];
 
-function promptCardsHTML(days, label, wk){
+function promptCardsHTML(days, label, wk, opts={}){
   const lbl = label === 'today' ? 'today\'s class' : label;
+  const roles = opts.only ? ROLES.filter(r=>opts.only.includes(r.key)) : ROLES;
   return `<p class="muted small" style="margin:0">Each prompt already includes your notes. Copy it, open your AI tool (Copilot, ChatGPT, Claude, Gemini…), paste, and press Enter.</p>
   <div class="notice info small"><b>AI can be wrong.</b> Treat it as a practice partner, not the final word. If an answer or grade doesn't match your lab or class, check it on Microsoft Learn or ask your instructor. Questioning AI output is a skill employers value.</div>
-  <div class="prompt-grid">${ROLES.map(r=>{
-    const id = regPrompt(r.build(days, lbl, wk));
+  <div class="prompt-grid">${roles.map(r=>{
+    const id = regPrompt(r.build(days, lbl, wk, opts));
     return `<div class="pcard"><div class="pcard-top"><div class="pcard-icon ${r.color}">${ICON[r.key]}</div><h3>${r.name}</h3></div>
       <p>${r.tag}</p>
       <p class="small" style="color:var(--teal);font-weight:600">${r.when}</p>
@@ -1039,6 +1240,25 @@ MY NOTES:
 ${notes}`;
 }
 
+/* ---------- Refresh (spaced review) ---------- */
+// Picks logged days from before this week, spread across three age bands, so older
+// material keeps coming back. The pick changes once a day, not on every click.
+function refreshPick(days){
+  const today = todayISO(), thisMon = mondayOf(today);
+  const past = days.filter(d => d.date < thisMon);
+  if(!past.length) return [];
+  let seed = [...today].reduce((h,c)=>(h*31 + c.charCodeAt(0)) >>> 0, 7);
+  const rnd = () => (seed = (seed*1103515245 + 12345) >>> 0) / 4294967296;
+  const shuffle = a => { a = a.slice(); for(let i=a.length-1;i>0;i--){ const j = Math.floor(rnd()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+  const age = d => daysBetween(d.date, today);
+  const bands = [past.filter(d=>age(d)<14), past.filter(d=>age(d)>=14 && age(d)<35), past.filter(d=>age(d)>=35)].map(shuffle);
+  const picked = [];
+  for(let round=0; round<2; round++) bands.forEach(b => { if(b[round]) picked.push(b[round]); });
+  const rest = shuffle(past.filter(d => !picked.includes(d)));
+  while(picked.length < 4 && rest.length) picked.push(rest.shift());
+  return picked.sort((a,b) => a.date < b.date ? -1 : 1);
+}
+
 /* ---------- Study view ---------- */
 function renderStudy(){
   const days = loggedDays();
@@ -1053,9 +1273,14 @@ function renderStudy(){
   if(mode === 'day') options = days.slice().reverse().map(d=>[d.date, `${fmtShort(d.date)}${weekOf(d.date)>0?` · Week ${weekOf(d.date)}`:''}${isInterview(d)?' · Mock interview':(d.course?` · ${d.course}`:'')}`]);
   if(mode === 'week') options = weeks.slice().reverse().map(w=>[String(w), `Week ${w} (${fmtMD(weekStart(w))} to ${fmtMD(addDays(weekStart(w),3))})`]);
   if(mode === 'course') options = courses.map(c=>[c,c]);
-  if(!options.some(o=>o[0]===st.studySel)) st.studySel = options.length ? options[0][0] : '';
+  if(mode !== 'refresh' && !options.some(o=>o[0]===st.studySel)) st.studySel = options.length ? options[0][0] : '';
 
   let sel = [], label = '', wk = null;
+  if(mode === 'refresh'){
+    sel = refreshPick(days);
+    const ws = [...new Set(sel.map(d=>weekOf(d.date)).filter(w=>w>0))];
+    label = `a review mix from earlier in my training${ws.length ? ` (week${ws.length>1?'s':''} ${ws.join(', ')})` : ''}`;
+  }
   if(mode === 'day'){ sel = days.filter(d=>d.date===st.studySel); label = sel[0] ? fmtLong(sel[0].date) : ''; wk = S.weeks[weekOf(st.studySel)]; }
   if(mode === 'week'){ const w = Number(st.studySel); sel = days.filter(d=>weekOf(d.date)===w); label = `week ${w} of my training`; wk = S.weeks[w]; }
   if(mode === 'course'){ sel = days.filter(d=>d.course===st.studySel); label = `my ${st.studySel} course`; }
@@ -1063,15 +1288,16 @@ function renderStudy(){
   main.innerHTML = `<div class="stack">
     <section class="card">
       <h2>Study prompts</h2>
-      <p class="lede">Two ways to study with AI. Pick what to study, then copy a prompt into the AI tool of your choice.</p>
+      <p class="lede">Two ways to study with AI: the <b>Listener</b> helps you understand a topic, and the <b>Examiner</b> helps you remember it. Try both and see which one works best for you.</p>
       <div class="controls" style="margin-top:14px">
-        <div><span class="q small">Study by</span><div class="seg" role="group">${[['day','Day'],['week','Week'],['course','Course']].map(([k,l])=>`<button data-mode="${k}" aria-pressed="${mode===k}">${l}</button>`).join('')}</div></div>
-        <label class="field"><span class="q small">${mode==='day'?'Day':mode==='week'?'Week':'Course'}</span>
-          <select id="studySel">${options.length ? options.map(([v,l])=>`<option value="${esc(v)}" ${v===st.studySel?'selected':''}>${esc(l)}</option>`).join('') : '<option>Nothing logged with a course yet</option>'}</select></label>
+        <div><span class="q small">Study by</span><div class="seg" role="group">${[['day','Day'],['week','Week'],['course','Course'],['refresh','Refresh']].map(([k,l])=>`<button data-mode="${k}" aria-pressed="${mode===k}">${l}</button>`).join('')}</div></div>
+        ${mode==='refresh' ? '' : `<label class="field"><span class="q small">${mode==='day'?'Day':mode==='week'?'Week':'Course'}</span>
+          <select id="studySel">${options.length ? options.map(([v,l])=>`<option value="${esc(v)}" ${v===st.studySel?'selected':''}>${esc(l)}</option>`).join('') : '<option>Nothing logged with a course yet</option>'}</select></label>`}
       </div>
+      ${mode==='refresh' ? `<p class="small muted" style="margin:12px 0 0">Refresh mixes in days from earlier weeks, some recent and some from weeks ago, so older material doesn't fade. Recalling something again after a few days is what makes it stick. The mix changes each day; try it once or twice a week.${sel.length ? ` Today's mix: ${sel.map(d=>esc(fmtShort(d.date))).join(', ')}.` : ''}</p>` : ''}
     </section>
-    ${sel.length ? promptCardsHTML(sel, label, wk) : `<div class="card muted">${mode==='course' ? 'Choose a course on your daily logs to study by course.' : 'Nothing to show.'}</div>`}
-    <section class="card small muted"><b>Tip:</b> use the Listener after class to make sure you understand, and the Examiner before a quiz or exam to find your level. Getting ready for interviews? Try the interview stories in <b>Summaries &amp; bullets</b>.</section>
+    ${sel.length ? promptCardsHTML(sel, label, wk, mode==='refresh' ? {refresh:true, only:['examiner']} : {}) : `<div class="card muted">${mode==='course' ? 'Choose a course on your daily logs to study by course.' : mode==='refresh' ? 'Refresh reviews material from earlier weeks. Come back once you have logged days from a week before this one.' : 'Nothing to show.'}</div>`}
+    <section class="card small muted"><b>Tip:</b> use the Listener to understand a topic, and the Examiner to keep it. Once a week, choose <b>Refresh</b> to review earlier weeks before they fade. Getting ready for interviews? Try the interview stories in <b>Summaries &amp; bullets</b>.</section>
   </div>`;
   main.onclick = e => { const b = e.target.closest('[data-mode]'); if(b){ st.studyMode = b.dataset.mode; st.studySel=''; renderStudy(); } };
   const s = $('#studySel'); if(s) s.onchange = e => { st.studySel = e.target.value; renderStudy(); };
@@ -1257,8 +1483,22 @@ function renderSettings(){
       <div class="actions-row"><button class="btn primary" id="saveSettings">Save setup</button><button class="btn ghost small" id="resetCourses">Restore default course list</button></div>
     </section>
     <section class="card">
+      <h2>Auto-save to a file</h2>
+      ${FS_OK ? `<p class="lede">Saves your diary to a file on your computer every time you type, so clearing Edge's data never erases your work. Keep the file in your <b>OneDrive</b> folder and it's backed up online too.</p>
+      <p class="small" id="fileStatus" style="margin:12px 0">${fileStatusHTML()}</p>
+      <div class="actions-row">
+        ${AS.state === 'off' ? '<button class="btn primary" data-fs="on">Turn on auto-save</button><button class="btn" data-fs="open">Open my diary file</button>' : ''}
+        ${AS.state === 'paused' ? '<button class="btn primary" data-fs="resume">Resume auto-save</button>' : ''}
+        ${AS.state === 'problem' ? '<button class="btn primary" data-fs="open">Find my file</button><button class="btn" data-fs="on">Save to a new file</button>' : ''}
+        ${AS.state === 'on' ? '<button class="btn" data-fs="on">Save to a different file</button>' : ''}
+        ${AS.state !== 'off' ? '<button class="btn ghost small" data-fs="off">Turn off auto-save</button>' : ''}
+      </div>
+      ${AS.state === 'off' ? `<p class="small muted" style="margin:12px 0 0"><b>New computer, or Edge's data was cleared?</b> Click <b>Open my diary file</b> and choose your file. Everything comes back, up to the last thing you typed.</p>` : ''}`
+      : '<p class="lede">Auto-save needs Microsoft Edge or Google Chrome on a computer. In this browser, download a backup every Friday instead.</p>'}
+    </section>
+    <section class="card">
       <h2>Backup &amp; restore</h2>
-      <p class="lede">Your diary lives only in this browser. Download a backup every Friday and keep it in OneDrive or another safe place. You can restore it on a new laptop too.</p>
+      <p class="lede">${AS.state === 'on' ? 'Auto-save keeps your diary file up to date. You can still download an extra copy any time.' : 'Download a backup every Friday and keep it in OneDrive or another safe place. You can restore it on a new laptop too.'}</p>
       <p class="small muted">${last ? `Last backup: ${new Date(last).toLocaleString()}` : 'No backup downloaded yet.'}</p>
       <div class="actions-row">
         <button class="btn primary" data-export>Download backup</button>
@@ -1284,8 +1524,10 @@ function renderSettings(){
     }
     if(t.id === 'resetCourses'){ $('#setCourses').value = DEFAULT_COURSES.join('\n'); }
     if(t.id === 'wipe'){
-      if(confirm('Erase ALL your diary entries, reviews, and bullets from this browser? This cannot be undone. (Tip: download a backup first.)') && confirm('Are you sure? Everything will be deleted.')){
-        S = fresh(); saveNow(); st.cur = todayISO(); setView('today'); toast('All data erased');
+      const fileNote = AS.handle ? ` Auto-save will be turned off, but your file (${AS.handle.name}) will not be deleted.` : '';
+      if(confirm(`Erase ALL your diary entries, reviews, and bullets from this browser? This cannot be undone. (Tip: download a backup first.)${fileNote}`) && confirm('Are you sure? Everything will be deleted.')){
+        // Turn off auto-save first, so the empty diary is never written over the file.
+        turnOffAutoSave(true).then(() => { S = fresh(); saveNow(); st.cur = todayISO(); setView('today'); toast('All data erased'); });
       }
     }
   };
@@ -1294,6 +1536,8 @@ function renderSettings(){
 
 /* ---------- Boot ---------- */
 setView('today');
+refreshFileUI(false);
+initAutoSave().then(() => refreshFileUI(false));
 })();
 </script>
 </body>

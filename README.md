@@ -45,10 +45,14 @@ Then:
 
 The app writes the prompts and the student pastes them into their own AI tool. The app itself never contacts an AI service.
 
-| Tool | What it does | Best time to use it |
-|---|---|---|
-| **Listener** | You explain a topic in your own words. The AI grades your explanation on accuracy, completeness, clarity, and use of technical terms, then tells you what you missed. | After class, to check that you really understand. |
-| **Examiner** | Quizzes you one question at a time, from basic recall up to exam-style scenarios. It gets harder until you miss, so you know your level. | Before a quiz or exam. |
+| Tool | Helps you | What it does | Best time to use it |
+|---|---|---|---|
+| **Listener** | **Understand** | You explain a topic in your own words. The AI grades your explanation on accuracy, completeness, clarity, and use of technical terms, then tells you what you missed. | When a topic is new, to check that you really understand it. |
+| **Examiner** | **Remember** | Asks you questions one at a time, answered from memory, from basic recall up to job-style scenarios. It then goes back over the questions you missed and ends with a "Practice next time" list instead of a grade. | To make terms, commands, and steps stick. Also a good warm-up before mock interviews. |
+
+Students are encouraged to try both and use whichever helps them more.
+
+**Refresh (spaced review):** in **Study prompts**, the **Refresh** option builds an Examiner prompt from earlier weeks: up to two days from the last two weeks, two from two to five weeks ago, and two from longer ago. Recalling material again after days or weeks is what keeps it from fading. The mix changes once a day, and students are encouraged to use it once or twice a week.
 
 Every prompt includes the student's notes, their IT experience level, and ground rules telling the AI to:
 
@@ -80,21 +84,24 @@ The **Summaries & bullets** tab also builds prompts for:
 
 Each can cover all of training, a single week, a course, or a date range.
 
-## Your data stays on your laptop
+## Your data stays on your computer
 
-- **No accounts, no sign-in, no server.** Everything you type is saved only in your web browser, on your own laptop.
+- **No accounts, no sign-in, no server.** Everything you type is saved in your web browser, on your own computer.
 - **Nobody else can see your entries,** including your instructor and the people who maintain this repository.
-- **Use the same browser on the same laptop every day.** Entries saved in Edge won't appear in Chrome, and the reverse.
-- **Download a backup every Friday** from **Settings & backup**, and keep it somewhere safe such as OneDrive. If your browser data is cleared, the backup is the only way to get your entries back.
-- **New laptop?** Open the app there and choose **Restore from file**.
+- **Turn on auto-save.** The last setup step asks students to choose a file, ideally in their **OneDrive** folder. The app then saves the diary to that file every time they type, so clearing the browser's data never erases their work. Auto-save can also be turned on or changed later in **Settings & backup**.
+- **Edge may ask for permission on later visits.** It asks to let the app keep editing the file; students choose **Allow on every visit**.
+- **Browser data cleared, or a new computer?** Open the app, choose **I already have a diary file** (or **Open my diary file** in **Settings & backup**), and pick the file. Everything comes back, up to the last thing typed.
+- **Use Microsoft Edge on your computer.** Auto-save works in Edge and Chrome on a computer, not in Firefox, Safari, or on phones. Don't use InPrivate windows.
+- **Without auto-save, download a backup every Friday** from **Settings & backup**. Students who skip auto-save see a weekly reminder to turn it on and backup reminders.
 
 ## Getting started (students)
 
-1. Open the app link above and bookmark it.
+1. Open the app link above in Microsoft Edge and bookmark it.
 2. Enter your training start date and your IT experience level.
-3. At the end of each class day, open **Today** and answer the questions.
-4. Click **Save & get study prompts**, copy a prompt, and paste it into your AI tool.
-5. On Fridays, complete the weekly review and download a backup.
+3. Turn on auto-save and save your diary file in your OneDrive folder.
+4. At the end of each class day, open **Today** and answer the questions.
+5. Click **Save & get study prompts**, copy a prompt, and paste it into your AI tool.
+6. On Fridays, complete the weekly review.
 
 ## For instructors
 
@@ -138,6 +145,8 @@ No lab list is built in, because labs can change from one cohort to the next. St
 ## Technical details
 
 - A single, self-contained HTML file (HTML, CSS, and JavaScript). There is no build step, and it uses no external libraries.
-- Data is stored in the browser's `localStorage`. Backups are plain JSON files.
-- Works in current versions of Microsoft Edge, Google Chrome, Firefox, and Safari, on laptops and phones.
+- Data is stored in the browser's `localStorage`. Backups and the auto-save file are plain JSON files.
+- Auto-save uses the browser's File System Access API (Edge and Chrome on a computer). The file's location is remembered in IndexedDB. On startup, the app compares the file with the browser copy and keeps the newer one. Nothing is sent to a server.
+- The app asks the browser for persistent storage, so the browser won't remove its data on its own when disk space runs low.
+- Designed for Microsoft Edge on Windows. The rest of the app also works in Chrome, Firefox, and Safari, but auto-save is only available in Edge and Chrome.
 - Supports light and dark mode automatically.
