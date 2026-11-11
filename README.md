@@ -33,6 +33,12 @@ Then:
 6. What resources were you given by the instructor that you may want to use later?
 7. What was the most interesting or surprising skill, command, technology, or concept you learned today, and why did it stand out to you?
 
+**Scope (question 5):** the app explains why numbers matter for resume bullets and offers examples for each area of the program, including what to write when there's nothing to count.
+
+**Week 9 (Pro-Dev Week):** week 9 is always dedicated to professional development, so the app doesn't track it. There's nothing to log that week, and the app suggests using Summaries & bullets to turn weeks 1 to 8 into resume bullets and interview stories.
+
+**Mock interview days:** mock technical interviews usually happen in week 10 or 11, depending on the cycle. On any class day, students can switch **Type of day** to **Mock interview** to answer three short questions instead: which topics or questions they were asked, which answers felt strong or weak, and what they'll review next. The study prompts then focus on the weak answers. Interview practice, project ideas, and AI discussions are never turned into resume bullets.
+
 **Days without labs:** students describe what they learned in their own words instead. On lab days, an optional notes box captures anything else from class worth remembering.
 
 ## The two study tools

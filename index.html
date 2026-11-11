@@ -110,6 +110,11 @@ input.short{max-width:120px}
 .lab{border-left:4px solid var(--teal)}
 .lab-num{color:var(--teal)}
 .notes-card{border-left:4px solid var(--purple)}
+details.examples{margin-top:8px;font-size:.88rem}
+details.examples summary{cursor:pointer;color:var(--teal);font-weight:600;width:max-content}
+details.examples ul{margin:8px 0 0;padding:10px 12px 10px 28px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;color:var(--muted)}
+details.examples li{margin:3px 0}
+details.examples li b{color:var(--text)}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}
 .chip{border:1px solid var(--border);background:var(--surface);color:var(--muted);padding:5px 12px;border-radius:999px;font-size:.85rem;font-weight:600}
 .chip:hover{border-color:var(--purple);color:var(--text)}
@@ -164,6 +169,9 @@ details.week.future{opacity:.62}
 .week-title{font-weight:700}
 .week-title span{font-weight:400;color:var(--muted);font-size:.86rem;margin-left:6px}
 .dayrows{border-top:1px solid var(--border)}
+.week-prodev{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:14px 16px;border:1px dashed var(--purple);border-radius:var(--radius);background:var(--purple-soft)}
+.week-prodev.current{border-style:solid}
+.prodev{border-top:4px solid var(--purple)}
 .dayrow{display:grid;grid-template-columns:110px 1fr auto auto;gap:10px;align-items:center;padding:10px 16px;border:0;border-bottom:1px solid var(--border);background:none;width:100%;text-align:left;color:var(--text)}
 .dayrow:last-child{border-bottom:0}
 .dayrow:hover{background:var(--surface-2)}
@@ -228,6 +236,7 @@ footer{color:var(--muted);font-size:.8rem;text-align:center;padding:0 16px 30px}
 /* ---------- Constants ---------- */
 const KEY = 'fltb.v1';
 const TOTAL_WEEKS = 17;
+const PRO_DEV_WEEK = 9;   // Professional Development week: not tracked in the app
 const DEFAULT_COURSES = [
   'AZ-040: Automating Administration with PowerShell',
   'GH-900: GitHub Foundations',
@@ -269,6 +278,7 @@ function weekOf(s){
   return Math.floor(daysBetween(mondayOf(S.settings.startDate), s)/7) + 1;
 }
 const weekStart = w => addDays(mondayOf(S.settings.startDate), (w-1)*7);
+const isProDev = s => weekOf(s) === PRO_DEV_WEEK;
 const isValidISO = s => /^\d{4}-\d{2}-\d{2}$/.test(s||'');
 
 /* ---------- Utilities ---------- */
@@ -303,7 +313,8 @@ function normLab(l){
 }
 function normDay(d, date){
   d = d || {};
-  return { date: d.date || date, course:d.course||'', topics:d.topics||'', labCount:(d.labCount===''||d.labCount==null)?'':Number(d.labCount)||0,
+  return { date: d.date || date, type: d.type==='interview' ? 'interview' : 'class', reflection:d.reflection||'', reviewPlan:d.reviewPlan||'',
+    course:d.course||'', topics:d.topics||'', labCount:(d.labCount===''||d.labCount==null)?'':Number(d.labCount)||0,
     labs:Array.isArray(d.labs)?d.labs.map(normLab):[], notes:d.notes||'', resources:d.resources||'', interesting:d.interesting||'', updated:d.updated||null };
 }
 function normalize(raw){
@@ -333,11 +344,18 @@ function saveSoon(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 35
 window.addEventListener('beforeunload', ()=>{ if(saveTimer) saveNow(); });
 document.addEventListener('visibilitychange', ()=>{ if(document.hidden && saveTimer) saveNow(); });
 
-const labsOf = d => d.labs.slice(0, Number(d.labCount)||0).map(normLab);
-const hasContent = d => d && (clean(d.topics) || labsOf(d).some(l=>clean(l.title)||clean(l.did)) || clean(d.notes) || clean(d.resources) || clean(d.interesting));
+const isInterview = d => !!d && d.type === 'interview';
+const labsOf = d => isInterview(d) ? [] : d.labs.slice(0, Number(d.labCount)||0).map(normLab);
+const hasContent = d => d && (clean(d.topics) || labsOf(d).some(l=>clean(l.title)||clean(l.did)) || clean(d.notes) || clean(d.resources) || clean(d.interesting) || clean(d.reflection));
+const dayLabelText = d => isInterview(d) ? 'Mock technical interview' : (d.course || linesOf(d.topics)[0] || '');
 const loggedDays = () => Object.values(S.days).filter(hasContent).sort((a,b)=>a.date.localeCompare(b.date));
 function missingFields(d){
   const m = [];
+  if(isInterview(d)){
+    if(!clean(d.topics)) m.push({label:'1. Topics or questions you were asked', sel:'[data-f="topics"]'});
+    if(!clean(d.reflection)) m.push({label:'2. Which answers felt strong or weak', sel:'[data-f="reflection"]'});
+    return m;
+  }
   if(!clean(d.topics)) m.push({label:'1. Topics covered in class', sel:'[data-f="topics"]'});
   if(d.labCount==='' || d.labCount==null) m.push({label:'2. Number of labs completed', sel:'[data-f="labCount"]'});
   if(d.labCount===0 && !clean(d.notes)) m.push({label:'What you learned today, in your own words (needed on days without labs)', sel:'[data-f="notes"]'});
@@ -374,7 +392,7 @@ $('#tabs').addEventListener('click', e => { const b = e.target.closest('button[d
 
 function updateBadge(){
   const w = weekOf(todayISO());
-  $('#weekBadge').textContent = (w && w>=1 && w<=TOTAL_WEEKS) ? `Week ${w} of ${TOTAL_WEEKS}` : (w>TOTAL_WEEKS ? 'Training complete' : '');
+  $('#weekBadge').textContent = (w && w>=1 && w<=TOTAL_WEEKS) ? `Week ${w} of ${TOTAL_WEEKS}${w===PRO_DEV_WEEK?' · Pro-Dev Week':''}` : (w>TOTAL_WEEKS ? 'Training complete' : '');
 }
 
 function resetHandlers(){ main.onclick = main.oninput = main.onchange = main.onkeydown = null; main.removeEventListener('focusout', onTagBlur, true); }
@@ -427,7 +445,7 @@ function renderWelcome(){
 /* ---------- Today ---------- */
 function stepClassDay(dir){
   let d = st.cur;
-  do { d = addDays(d, dir); } while(dow(d)===0 || dow(d)===6);
+  do { d = addDays(d, dir); } while(dow(d)===0 || dow(d)===6 || isProDev(d));
   st.cur = d; renderToday();
 }
 function dayLabel(d){
@@ -436,7 +454,7 @@ function dayLabel(d){
   if(w===null) sub = '';
   else if(w < 1) sub = 'Before your training start date';
   else if(w > TOTAL_WEEKS) sub = `After week ${TOTAL_WEEKS}`;
-  else sub = `Week ${w} of ${TOTAL_WEEKS}`;
+  else sub = `Week ${w} of ${TOTAL_WEEKS}${w===PRO_DEV_WEEK?' · Pro-Dev Week':''}`;
   return `${esc(fmtLong(d))}<span>${sub}${d===todayISO()?' · Today':''}</span>`;
 }
 function backupNudge(){
@@ -452,7 +470,9 @@ function renderToday(){
   resetHandlers();
   const d = st.cur, day = dow(d);
   let body;
-  if(day===0 || day===6) body = weekendHTML(d);
+  const proDev = isProDev(d);
+  if(proDev) body = proDevHTML(d);
+  else if(day===0 || day===6) body = weekendHTML(d);
   else if(day===5) body = reviewHTML(d);
   else body = dailyHTML(d);
   main.innerHTML = `<div class="stack">
@@ -470,11 +490,27 @@ function renderToday(){
     const nav = t.closest('[data-nav]'); if(nav) return stepClassDay(Number(nav.dataset.nav));
     const go = t.closest('[data-goto]'); if(go){ st.cur = go.dataset.goto; return renderToday(); }
     if(t.closest('[data-export]')) return exportData();
+    const open = t.closest('[data-open]'); if(open) return setView(open.dataset.open);
+    if(proDev) return;
     if(day>=1 && day<=4) dailyClick(e);
     if(day===5) reviewClick(e);
   };
+  if(proDev) return;
   if(day>=1 && day<=4) bindDaily();
   if(day===5) bindReview();
+}
+
+function proDevHTML(d){
+  const w8Thu = addDays(weekStart(PRO_DEV_WEEK - 1), 3);
+  const w10Mon = weekStart(PRO_DEV_WEEK + 1);
+  return `<section class="card empty prodev">
+    <h2>Week ${PRO_DEV_WEEK} is Pro-Dev Week</h2>
+    <p class="muted">There's nothing to log this week. Enjoy your professional development classes and activities.</p>
+    <p class="muted">This is a great time to turn your first ${PRO_DEV_WEEK - 1} weeks into resume bullets and interview stories.</p>
+    <div class="actions-row" style="justify-content:center;margin-top:6px">
+      <button class="btn primary" data-open="summaries">Open Summaries &amp; bullets</button>
+      ${d < w10Mon ? `<button class="btn" data-goto="${w8Thu}">Back to week ${PRO_DEV_WEEK - 1}</button>` : ''}
+    </div></section>`;
 }
 
 function weekendHTML(d){
@@ -503,6 +539,17 @@ function tagsHTML(techs, i){
   return techs.map((t,j)=>`<span class="tag">${esc(t)}<button type="button" data-rmtag="${i}:${j}" aria-label="Remove ${esc(t)}">×</button></span>`).join('')
     + `<input class="taginput" data-taginput="${i}" list="techlist" aria-label="Add a technology for lab ${i+1}" placeholder="${techs.length?'Add another…':'Type a technology or tool, press Enter'}">`;
 }
+const SCOPE_EXAMPLES = `<details class="examples"><summary>See examples</summary><ul>
+  <li><b>Windows Server:</b> 2 servers, 1 domain, 3 OUs, 10 user accounts, 2 Group Policy objects</li>
+  <li><b>Networking:</b> 1 DHCP scope (50 addresses), 1 reservation, 2 DNS zones, 4 DNS records</li>
+  <li><b>Linux (Ubuntu):</b> 1 Ubuntu server, 3 users, 2 groups, 1 shared folder with custom permissions</li>
+  <li><b>PowerShell:</b> 1 script, 25 user accounts created from a CSV file, 3 servers checked</li>
+  <li><b>GitHub:</b> 1 repository, 2 branches, 1 pull request, 1 GitHub Actions workflow</li>
+  <li><b>Endpoint management:</b> 5 devices enrolled, 2 compliance policies, 1 app deployed</li>
+  <li><b>Identity:</b> 10 users, 2 groups, 1 Conditional Access policy, MFA turned on for 1 group</li>
+  <li><b>Azure (later in the program):</b> 2 VMs, 1 virtual network, 2 subnets, 1 network security group with 3 rules</li>
+  <li><b>Nothing to count?</b> Describe the environment, for example: "Explored only: 1 Windows Server VM, reviewed Event Viewer logs"</li>
+</ul></details>`;
 function labHTML(l, i){
   return `<section class="card lab" data-labcard="${i}">
     <div class="card-head"><h3 class="lab-num">Lab ${i+1}</h3></div>
@@ -511,13 +558,16 @@ function labHTML(l, i){
     <div class="field"><span class="q"><b>3.</b> What did you build, configure, deploy, or automate in the virtual lab, and what specific technologies or tools did you use to accomplish it? <i class="req">*</i></span>
       <span class="hint">Tap the action words that fit, describe what you did, then add each technology or tool.</span>
       <div class="chips" role="group" aria-label="Actions for lab ${i+1}">${ACTIONS.map(a=>`<button type="button" class="chip ${l.actions.includes(a)?'on':''}" data-chip="${a}" data-lab="${i}" aria-pressed="${l.actions.includes(a)}">${a}</button>`).join('')}</div>
-      <textarea data-lab="${i}" data-f="did" rows="3" aria-label="What you did in lab ${i+1}" placeholder="e.g., Built a virtual network with two subnets and deployed a Windows Server VM into each one">${esc(l.did)}</textarea>
+      <textarea data-lab="${i}" data-f="did" rows="3" aria-label="What you did in lab ${i+1}" placeholder="e.g., Installed the AD DS role on a Windows Server VM, promoted it to a domain controller, and created OUs and user accounts">${esc(l.did)}</textarea>
       <div class="tagbox" data-tagbox="${i}">${tagsHTML(l.techs, i)}</div>
     </div>
     <label class="field"><span class="q"><b>4.</b> How did the environment or solution function after you completed the lab, and what business or technical objective did your setup achieve? What problem were you trying to solve? <i class="req">*</i></span>
-      <textarea data-lab="${i}" data-f="outcome" rows="3" placeholder="e.g., Both VMs could talk to each other, but RDP from the internet was blocked. This protected the servers while still letting the app tier reach the database.">${esc(l.outcome)}</textarea></label>
-    <label class="field"><span class="q"><b>5.</b> What was the scope of the lab environment, including the number of systems, devices, accounts, or automation scripts you configured? <i class="req">*</i></span>
-      <textarea data-lab="${i}" data-f="scope" rows="2" placeholder="e.g., 2 VMs, 1 virtual network, 2 subnets, 1 NSG with 3 rules, 1 PowerShell script">${esc(l.scope)}</textarea></label>
+      <textarea data-lab="${i}" data-f="outcome" rows="3" placeholder="e.g., A client computer could join the domain and sign in with a domain account. This gave the company one central place to manage user accounts and access.">${esc(l.outcome)}</textarea></label>
+    <div class="field"><span class="q"><b>5.</b> What was the scope of the lab environment, including the number of systems, devices, accounts, or automation scripts you configured? <i class="req">*</i></span>
+      <span class="hint"><b>Why this matters:</b> numbers make your resume bullets stand out. "Created 25 user accounts with PowerShell" is stronger than "Created user accounts." Count only what you actually built or changed: servers or VMs, user accounts, groups, policies, scripts, rules, devices, or files.</span>
+      <textarea data-lab="${i}" data-f="scope" rows="2" aria-label="Scope of lab ${i+1}" placeholder="e.g., 2 servers, 1 domain, 3 OUs, 10 user accounts, 2 Group Policy objects">${esc(l.scope)}</textarea>
+      ${SCOPE_EXAMPLES}
+    </div>
   </section>`;
 }
 function labsHTML(e){
@@ -529,8 +579,8 @@ function labsHTML(e){
 function notesHTML(e){
   if(e.labCount === 0) return `<section class="card notes-card">
     <label class="field"><span class="q">No labs today, so describe what you learned in your own words. <i class="req">*</i></span>
-      <span class="hint">For each topic: what is it, how does it work, and why does it matter in IT? Explaining it yourself is one of the best ways to remember it.</span>
-      <textarea data-f="notes" rows="6" placeholder="e.g., VNet peering connects two Azure virtual networks so their resources can talk privately over Microsoft's network. Peering isn't transitive: if A peers with B and B with C, A still can't reach C. That matters when designing hub-and-spoke networks.">${esc(e.notes)}</textarea></label>
+      <span class="hint">For each topic: what is it, how does it work, and why does it matter in IT? Explaining it yourself is one of the best ways to remember it. <b>Discussed project ideas or AI?</b> Note the ideas, the technologies involved, and what you could learn from them.</span>
+      <textarea data-f="notes" rows="6" placeholder="e.g., DNS translates names like server1.contoso.local into IP addresses so computers can find each other. Active Directory depends on DNS to locate domain controllers, which is why a broken DNS record can stop users from signing in.">${esc(e.notes)}</textarea></label>
   </section>`;
   return `<section class="card">
     <label class="field"><span class="q">Any other notes from class worth remembering? <span class="opt">(optional)</span></span>
@@ -543,11 +593,46 @@ function statusPill(e){
   const m = missingFields(e).length;
   return m ? `<span class="pill draft">Draft · ${m} left</span>` : `<span class="pill ok">Complete</span>`;
 }
-function dailyHTML(date){
-  const e = getDay(date); st.entry = e;
+function dayTypeHTML(e){
+  return `<div class="field"><span class="q small">Type of day</span>
+    <div class="seg" role="group" aria-label="Type of day">
+      <button type="button" data-daytype="class" aria-pressed="${!isInterview(e)}">Class day</button>
+      <button type="button" data-daytype="interview" aria-pressed="${isInterview(e)}">Mock interview</button>
+    </div></div>`;
+}
+function dayActionsHTML(date){
+  return `<div class="actions-row">
+      <button type="button" class="btn primary" id="finishDay">Save &amp; get study prompts</button>
+      <span class="muted small">Your answers save automatically as you type.</span>
+      ${S.days[date] ? `<button type="button" class="btn ghost small" id="clearDay" style="margin-left:auto">Clear this day</button>` : ''}
+    </div>
+    <div id="missing"></div>`;
+}
+function interviewHTML(e){
   return `<form id="dayForm" class="stack" novalidate onsubmit="return false">
     <section class="card">
       <div class="card-head"><h2>Daily log</h2><span id="statusPill">${statusPill(e)}</span></div>
+      ${dayTypeHTML(e)}
+      <div class="notice info small" style="margin-bottom:16px">Record what you were asked while it's fresh. Your study prompts will help you practice the answers that felt weak. Interview practice is never used for resume bullets.</div>
+      <label class="field"><span class="q"><b>1.</b> Which technical topics or questions were you asked? <i class="req">*</i></span>
+        <span class="hint">One per line. Write the questions as closely as you remember them.</span>
+        <textarea data-f="topics" rows="4" placeholder="e.g.&#10;What's the difference between DHCP and DNS?&#10;How would you troubleshoot a user who can't sign in to the domain?">${esc(e.topics)}</textarea></label>
+      <label class="field"><span class="q"><b>2.</b> Which answers felt strong, and which felt weak or unsure? <i class="req">*</i></span>
+        <textarea data-f="reflection" rows="4" placeholder="e.g., Strong: explaining what DHCP does. Weak: I couldn't explain the order Group Policy is applied in.">${esc(e.reflection)}</textarea></label>
+      <label class="field"><span class="q"><b>3.</b> What will you review before your next interview? <span class="opt">(optional)</span></span>
+        <textarea data-f="reviewPlan" rows="2">${esc(e.reviewPlan)}</textarea></label>
+    </section>
+    ${dayActionsHTML(e.date)}
+  </form>
+  <div id="afterSave"></div>`;
+}
+function dailyHTML(date){
+  const e = getDay(date); st.entry = e;
+  if(isInterview(e)) return interviewHTML(e);
+  return `<form id="dayForm" class="stack" novalidate onsubmit="return false">
+    <section class="card">
+      <div class="card-head"><h2>Daily log</h2><span id="statusPill">${statusPill(e)}</span></div>
+      ${dayTypeHTML(e)}
       <div class="field">
         <label><span class="q">Course or module</span>
           <select data-f="course">${courseOptions(e.course)}</select></label>
@@ -559,7 +644,7 @@ function dailyHTML(date){
       </div>
       <label class="field"><span class="q"><b>1.</b> What topics were covered in class today? <i class="req">*</i></span>
         <span class="hint">One topic per line.</span>
-        <textarea data-f="topics" rows="3" placeholder="e.g.&#10;Azure virtual networks and subnets&#10;Network security groups">${esc(e.topics)}</textarea></label>
+        <textarea data-f="topics" rows="3" placeholder="e.g.&#10;Active Directory Domain Services&#10;Group Policy basics">${esc(e.topics)}</textarea></label>
       <label class="field"><span class="q"><b>2.</b> How many labs did you complete today? <i class="req">*</i></span>
         <input type="number" class="short" min="0" max="12" inputmode="numeric" data-f="labCount" value="${e.labCount}"></label>
     </section>
@@ -572,12 +657,7 @@ function dailyHTML(date){
       <label class="field"><span class="q"><b>7.</b> What was the most interesting or surprising skill, command, technology, or concept you learned today, and why did it stand out to you? <span class="opt">(optional)</span></span>
         <textarea data-f="interesting" rows="3">${esc(e.interesting)}</textarea></label>
     </section>
-    <div class="actions-row">
-      <button type="button" class="btn primary" id="finishDay">Save &amp; get study prompts</button>
-      <span class="muted small">Your answers save automatically as you type.</span>
-      ${S.days[date] ? `<button type="button" class="btn ghost small" id="clearDay" style="margin-left:auto">Clear this day</button>` : ''}
-    </div>
-    <div id="missing"></div>
+    ${dayActionsHTML(date)}
   </form>
   <div id="afterSave"></div>`;
 }
@@ -668,6 +748,11 @@ function cancelNewCourse(){
 }
 function dailyClick(ev){
   const t = ev.target, e = st.entry;
+  const dt = t.closest('[data-daytype]');
+  if(dt){
+    if(e.type !== dt.dataset.daytype){ e.type = dt.dataset.daytype; persistEntry(); renderToday(); }
+    return;
+  }
   if(t.id === 'saveCourse') return saveNewCourse();
   if(t.id === 'cancelCourse') return cancelNewCourse();
   const chip = t.closest('[data-chip]');
@@ -719,7 +804,7 @@ function reviewHTML(date){
   const days = weekDays(w).map(d => {
     const e = S.days[d];
     const status = !hasContent(e) ? `<span class="pill">Not logged</span>` : isComplete(e) ? `<span class="pill ok">Complete</span>` : `<span class="pill draft">Draft</span>`;
-    return `<button type="button" class="dayrow" data-goto="${d}"><b>${esc(fmtShort(d))}</b><span class="c">${esc(e&&e.course||'')}</span><span class="labs small muted">${e?labsOf(e).length:0} labs</span>${status}</button>`;
+    return `<button type="button" class="dayrow" data-goto="${d}"><b>${esc(fmtShort(d))}</b><span class="c">${esc(e&&hasContent(e)?dayLabelText(e):'')}</span><span class="labs small muted">${e?labsOf(e).length:0} labs</span>${status}</button>`;
   }).join('');
   return `<section class="card" style="padding:0;overflow:hidden">
       <div style="padding:18px 18px 10px"><h2>Week ${w} at a glance</h2><p class="lede small">Tap a day to fill in or fix anything you missed.</p></div>
@@ -806,6 +891,16 @@ function notesBlock(days, opts={}){
         if(clean(wk.focus)) r.push(`Focus for next week: ${clean(wk.focus)}`);
         out.push(r.join('\n'));
       }
+    }
+    if(isInterview(d)){
+      const ip = [`## ${fmtLong(d.date)}${w>0 ? ` (Week ${w})` : ''} · Mock technical interview (practice, not completed work)`];
+      const qs = linesOf(d.topics);
+      if(qs.length) ip.push('Topics and questions I was asked:\n' + qs.map(t=>'- '+t).join('\n'));
+      if(clean(d.reflection)) ip.push(`How my answers went (strong and weak):\n${clean(d.reflection)}`);
+      if(clean(d.reviewPlan)) ip.push(`What I plan to review: ${clean(d.reviewPlan)}`);
+      ip.push('Give extra practice to the answers I said felt weak.');
+      out.push(ip.join('\n'));
+      return;
     }
     const head = `## ${fmtLong(d.date)}${w>0 ? ` (Week ${w})` : ''}${clean(d.course) ? ` · ${clean(d.course)}` : ''}`;
     const parts = [head];
@@ -901,7 +996,7 @@ Write a clear, well-organized summary of my technical training, using ONLY the i
 3. Key hands-on labs: the most significant labs and what each one accomplished.
 4. Growth areas: topics that look less developed or that I said were unclear, with Microsoft Learn topics to review for each.${weekly ? '\n5. Resources worth keeping: the most useful instructor resources from my notes.' : ''}
 
-Write in first person, and keep it factual. Do not add skills, tools, or results that aren't in my notes.
+Write in first person, and keep it factual. Do not add skills, tools, or results that aren't in my notes. Mock interviews and project or AI discussions can be mentioned as training activities, but never as completed technical work.
 
 MY NOTES:
 ${notes}`;
@@ -917,12 +1012,13 @@ Every bullet must follow this format: Action + Technology + Purpose
 Example: Configured Azure Virtual Networks and Network Security Groups to segment workloads and block unauthorized inbound traffic.
 
 Rules:
-1. Use the scope details (number of VMs, users, devices, scripts) to add numbers when they're in my notes. Never invent numbers, tools, or results.
-2. Combine similar labs into one stronger bullet instead of repeating the same skill.
-3. Keep each bullet to one line (about 25 words or fewer) and vary the action verbs.
-4. This work was done in hands-on virtual lab environments during training, so the bullets should fit under a "Technical Training" or "Hands-On Projects" section. Don't present it as paid job experience.
-5. After the bullets, list 8 to 12 keywords for the Skills section of my resume, taken from my notes.
-6. If a bullet would be stronger with a detail I didn't record, ask me about it at the end.
+1. Only use lab work I actually completed. Never turn ideas, plans, project discussions, or mock interview practice into bullets.
+2. Use the scope details (number of servers, users, devices, scripts) to add numbers when they're in my notes. Never invent numbers, tools, or results.
+3. Combine similar labs into one stronger bullet instead of repeating the same skill.
+4. Keep each bullet to one line (about 25 words or fewer) and vary the action verbs.
+5. This work was done in hands-on virtual lab environments during training, so the bullets should fit under a "Technical Training" or "Hands-On Projects" section. Don't present it as paid job experience.
+6. After the bullets, list 8 to 12 keywords for the Skills section of my resume, taken from my notes.
+7. If a bullet would be stronger with a detail I didn't record, ask me about it at the end.
 
 MY NOTES:
 ${notes}`;
@@ -937,7 +1033,7 @@ For each story:
 4. End with the result and what I learned.
 5. Below each story, list 2 interview questions it answers well (for example "Tell me about a time you automated a task" or "How would you secure a virtual network?").
 
-Don't invent facts. If a story needs a detail I didn't record, ask me at the end.
+Only use work I actually completed in labs. Don't present project ideas, AI discussions, or mock interview practice as finished work. Don't invent facts. If a story needs a detail I didn't record, ask me at the end.
 
 MY NOTES:
 ${notes}`;
@@ -954,7 +1050,7 @@ function renderStudy(){
   const courses = coursesIn(days);
   const mode = st.studyMode;
   let options = [];
-  if(mode === 'day') options = days.slice().reverse().map(d=>[d.date, `${fmtShort(d.date)}${weekOf(d.date)>0?` · Week ${weekOf(d.date)}`:''}${d.course?` · ${d.course}`:''}`]);
+  if(mode === 'day') options = days.slice().reverse().map(d=>[d.date, `${fmtShort(d.date)}${weekOf(d.date)>0?` · Week ${weekOf(d.date)}`:''}${isInterview(d)?' · Mock interview':(d.course?` · ${d.course}`:'')}`]);
   if(mode === 'week') options = weeks.slice().reverse().map(w=>[String(w), `Week ${w} (${fmtMD(weekStart(w))} to ${fmtMD(addDays(weekStart(w),3))})`]);
   if(mode === 'course') options = courses.map(c=>[c,c]);
   if(!options.some(o=>o[0]===st.studySel)) st.studySel = options.length ? options[0][0] : '';
@@ -989,13 +1085,17 @@ function renderTimeline(){
   const techCount = new Set(days.flatMap(d=>labsOf(d).flatMap(l=>l.techs.map(t=>t.toLowerCase())))).size;
   const start = mondayOf(S.settings.startDate);
   let classDaysSoFar = 0;
-  for(let i=0;i<TOTAL_WEEKS*7;i++){ const d = addDays(start,i); if(d>today) break; const k=dow(d); if(k>=1&&k<=4) classDaysSoFar++; }
+  for(let i=0;i<TOTAL_WEEKS*7;i++){ const d = addDays(start,i); if(d>today) break; if(Math.floor(i/7)+1===PRO_DEV_WEEK) continue; const k=dow(d); if(k>=1&&k<=4) classDaysSoFar++; }
   const pct = classDaysSoFar ? Math.min(100, Math.round(days.filter(d=>dow(d.date)>=1&&dow(d.date)<=4).length/classDaysSoFar*100)) : 0;
   const weekPct = curW ? Math.max(0, Math.min(100, Math.round(Math.min(curW,TOTAL_WEEKS)/TOTAL_WEEKS*100))) : 0;
 
   let weeksHTML = '';
   for(let w=1; w<=TOTAL_WEEKS; w++){
     const ws = weekStart(w);
+    if(w === PRO_DEV_WEEK){
+      weeksHTML += `<div class="week-prodev ${w===curW?'current':''}"><span class="week-title">Week ${w}<span>${fmtMD(ws)} to ${fmtMD(addDays(ws,4))}</span></span><span class="pill purple">Pro-Dev Week · not tracked</span></div>`;
+      continue;
+    }
     const wd = [0,1,2,3,4].map(k=>addDays(ws,k));
     const logged = wd.slice(0,4).filter(d=>hasContent(S.days[d])).length;
     const wlabs = wd.reduce((n,d)=>n+(S.days[d]?labsOf(S.days[d]).length:0),0);
@@ -1005,7 +1105,7 @@ function renderTimeline(){
       if(k===4) return `<button class="dayrow" data-goto="${d}"><b>${esc(fmtShort(d))}</b><span class="c">Weekly review</span><span class="labs small muted">${wk&&wk.confidence?`Confidence ${wk.confidence}/5`:''}</span>${reviewed?'<span class="pill ok">Done</span>':'<span class="pill">Not yet</span>'}</button>`;
       const e = S.days[d];
       const status = !hasContent(e) ? (d>today?'<span class="pill">Upcoming</span>':'<span class="pill">Not logged</span>') : isComplete(e) ? '<span class="pill ok">Complete</span>' : '<span class="pill draft">Draft</span>';
-      return `<button class="dayrow" data-goto="${d}"><b>${esc(fmtShort(d))}</b><span class="c">${esc(e&&hasContent(e)?(e.course||linesOf(e.topics)[0]||''):'')}</span><span class="labs small muted">${e?labsOf(e).length:0} labs</span>${status}</button>`;
+      return `<button class="dayrow" data-goto="${d}"><b>${esc(fmtShort(d))}</b><span class="c">${esc(e&&hasContent(e)?dayLabelText(e):'')}</span><span class="labs small muted">${e?labsOf(e).length:0} labs</span>${status}</button>`;
     }).join('');
     weeksHTML += `<details class="week ${w===curW?'current':''} ${future?'future':''}" ${w===curW || (curW>TOTAL_WEEKS && w===TOTAL_WEEKS) ? 'open':''}>
       <summary><span class="week-title">Week ${w}<span>${fmtMD(ws)} to ${fmtMD(addDays(ws,3))}</span></span>
