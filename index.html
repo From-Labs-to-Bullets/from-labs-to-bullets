@@ -202,6 +202,27 @@ details.week.future{opacity:.62}
 #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:600;font-size:.9rem;opacity:0;pointer-events:none;transition:.25s;z-index:50;max-width:calc(100% - 32px);text-align:center}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 footer{color:var(--muted);font-size:.8rem;text-align:center;padding:0 16px 30px}
+
+/* Printable training record (used only when printing / saving as PDF) */
+#printArea{display:none}
+@media print{
+  @page{margin:16mm}
+  html,body{background:#fff!important}
+  body > *:not(#printArea){display:none!important}
+  #printArea{display:block!important;color:#1a1a1a;font:10.5pt/1.45 "Segoe UI",Calibri,Arial,sans-serif}
+  #printArea h1{font-size:22pt;color:#1d3f8f;margin:0 0 4pt}
+  #printArea .pr-head{border-bottom:2pt solid #0e8f8f;padding-bottom:8pt;margin-bottom:12pt}
+  #printArea .pr-head p{margin:2pt 0;color:#555}
+  #printArea h2{font-size:14pt;color:#1d3f8f;margin:14pt 0 6pt;border-bottom:1pt solid #d9e0ee;padding-bottom:3pt;break-after:avoid}
+  #printArea h2 span{font-size:10pt;color:#666;font-weight:400}
+  #printArea h3{font-size:11.5pt;color:#0e8f8f;margin:10pt 0 4pt;break-after:avoid}
+  #printArea h4{font-size:10.5pt;margin:0 0 3pt}
+  #printArea p{margin:3pt 0}
+  #printArea ul{margin:2pt 0 4pt;padding-left:16pt}
+  #printArea .pr-day{break-inside:avoid-page;margin-bottom:6pt}
+  #printArea .pr-lab{border-left:3pt solid #0e8f8f;padding:3pt 0 3pt 8pt;margin:6pt 0;break-inside:avoid}
+  #printArea .pr-review{background:#f3f1fc;border-left:3pt solid #6b5cc9;padding:5pt 8pt;margin:8pt 0;break-inside:avoid}
+}
 </style>
 </head>
 <body>
@@ -1452,6 +1473,146 @@ function renderTimeline(){
 }
 
 /* ---------- Summaries & bullets ---------- */
+/* ---------- Exports: PDF training record (private) and GitHub README (public) ---------- */
+function techCounts(days){
+  const m = new Map();
+  days.forEach(d=>labsOf(d).forEach(l=>l.techs.forEach(t=>{ const k=t.toLowerCase(); const v=m.get(k)||{name:t,n:0}; v.n++; m.set(k,v); })));
+  return [...m.values()].sort((a,b)=>b.n-a.n || a.name.localeCompare(b.name));
+}
+// Skill groups for exports. Rules are checked top to bottom; the first match wins.
+const SKILL_ORDER = ['Cloud & Virtualization','Server & Identity','Networking & Security','Automation & Operations','DevOps & Version Control','Endpoint Management','AI','Other tools'];
+const SKILL_RULES = [
+  ['AI', /\b(ai|openai|copilot|machine learning|cognitive services|computer vision|speech|language studio|document intelligence|bot service)\b/i],
+  ['DevOps & Version Control', /\b(git|github|gitlab|pull requests?|azure devops|azure pipelines|azure repos|azure boards|ci\/cd|yaml|markdown|visual studio code|vs code|terraform|ansible)\b/i],
+  ['Networking & Security', /\b(dns|dhcp|tcp\/?ip|ipv[46]|subnets?|subnetting|vlans?|vpn|ikev2|firewalls?|nsgs?|network security groups?|load balancers?|application gateway|front door|bastion|routing|remote access|nslookup|ping|tracert|ssh|openssh|ssh-keygen|defender|sentinel|key vault|tls|ssl|certificates?|pki|wireshark|nmap|ddos|waf|private endpoints?|expressroute|peering|security)\b/i],
+  ['Endpoint Management', /\b(intune|autopilot|configuration manager|sccm|mecm|endpoint|windows 1[01]|windows client|bitlocker|windows update for business|company portal|mdm|mam)\b/i],
+  ['Server & Identity', /\b(windows server|server core|active directory|ad ds|ad cs|ad fs|group policy|gpos?|gpresult|gpupdate|entra|azure ad|rbac|role-based|conditional access|mfa|multifactor|identity|sconfig|server manager|windows admin center|iis|storage spaces|refs|ntfs|iscsi|file server|dfs|failover clustering|kerberos|ldap)\b/i],
+  ['Cloud & Virtualization', /\b(azure|aws|gcp|cloud|hyper-v|vmware|virtual machines?|vms?|containers?|docker|kubernetes|aks|arm templates?|bicep|virtualization|checkpoints?|log analytics|kql|microsoft 365|m365)\b/i],
+  ['Automation & Operations', /\b(powershell|bash|shell|scripts?|scripting|cron|crontab|task scheduler|winrm|csv|linux|ubuntu|apt|systemd|systemctl|chmod|chown|useradd|usermod|grep|find|tar|sed|awk|vim|nano|nginx|apache|python|backups?|monitoring|patch|patching|updates?|wsus|event viewer|performance monitor)\b/i],
+];
+function skillGroup(name){
+  if(/^[A-Z][a-z]+-[A-Z][A-Za-z]+$/.test(name.trim())) return 'Automation & Operations'; // PowerShell cmdlets (Verb-Noun)
+  const hit = SKILL_RULES.find(([, re]) => re.test(name));
+  return hit ? hit[0] : 'Other tools';
+}
+function groupSkills(techs){
+  const g = new Map();
+  techs.forEach(t => { const k = skillGroup(t.name); if(!g.has(k)) g.set(k, []); g.get(k).push(t); });
+  return SKILL_ORDER.filter(k => g.has(k)).map(k => ({group:k, items:g.get(k)}));
+}
+function weeksIn(days){ return [...new Set(days.map(d=>weekOf(d.date)))].sort((a,b)=>a-b); }
+const oneLine = s => clean(s).replace(/\s*\r?\n\s*/g, ' ');
+const exportPeriod = label => label === 'my training so far' ? 'All training to date' : label.replace(/^my /,'').replace(/^./, c=>c.toUpperCase());
+
+function buildMarkdown(days, label){
+  const labDays = days.filter(d => labsOf(d).length);
+  const nLabs = labDays.reduce((n,d)=>n+labsOf(d).length, 0);
+  const techs = techCounts(days);
+  const courses = coursesIn(days.filter(d=>!isInterview(d)));
+  const out = [];
+  out.push('# Hands-On IT Training Portfolio', '');
+  out.push(`Hands-on lab work from a 17-week, full-time IT technical training program aligned to Microsoft Learn. All work below was completed in virtual lab environments.`, '');
+  out.push(`**Labs completed:** ${nLabs}  `);
+  out.push(`**Technologies used:** ${techs.length}  `);
+  if(label !== 'my training so far') out.push(`**Period:** ${exportPeriod(label)}  `);
+  if(courses.length) out.push(`**Courses:** ${courses.join(' · ')}`);
+  out.push('');
+  if(techs.length){
+    out.push('## Skills and technologies', '');
+    groupSkills(techs).forEach(g => out.push(`- **${g.group}:** ${g.items.map(t=>t.name).join(', ')}`));
+    out.push('');
+  }
+  if(S.bullets.length){
+    out.push('## Highlights', '');
+    S.bullets.forEach(b => out.push(`- ${oneLine(b.text)}`));
+    out.push('');
+  }
+  if(labDays.length){
+    out.push('## Lab log', '');
+    weeksIn(labDays).forEach(w => {
+      const wd = labDays.filter(d=>weekOf(d.date)===w);
+      const wc = coursesIn(wd);
+      out.push(`### ${w>0 ? `Week ${w}` : 'Before week 1'}${wc.length ? ` · ${wc.join(' · ')}` : ''}`, '');
+      const topics = [...new Set(days.filter(d=>weekOf(d.date)===w && !isInterview(d)).flatMap(d=>linesOf(d.topics)))];
+      if(topics.length) out.push(`**Topics covered:** ${topics.join(', ')}`, '');
+      wd.forEach(d => labsOf(d).forEach(l => {
+        out.push(`#### ${oneLine(l.title) || 'Untitled lab'}`, '');
+        out.push(`*${fmt(d.date,{month:'long',day:'numeric',year:'numeric'})}*`, '');
+        if(clean(l.did)) out.push(`- **What I did:** ${oneLine(l.did)}`);
+        if(l.techs.length) out.push(`- **Technologies:** ${l.techs.join(', ')}`);
+        if(clean(l.outcome)) out.push(`- **Result:** ${oneLine(l.outcome)}`);
+        if(clean(l.scope)) out.push(`- **Scope:** ${oneLine(l.scope)}`);
+        out.push('');
+      }));
+    });
+  }
+  out.push('---', '', `*Last updated ${fmt(todayISO(),{month:'long',day:'numeric',year:'numeric'})}*`, '');
+  return out.join('\n');
+}
+function downloadText(text, filename, type){
+  const blob = new Blob([text], {type});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+}
+
+function recordHTML(days, label){
+  const techs = techCounts(days);
+  const nLabs = days.reduce((n,d)=>n+labsOf(d).length, 0);
+  const list = items => items.length ? `<ul>${items.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>` : '';
+  const para = (lbl, txt) => clean(txt) ? `<p><b>${lbl}</b> ${esc(clean(txt)).replace(/\n/g,'<br>')}</p>` : '';
+  let h = `<header class="pr-head"><h1>Training Record</h1>
+    <p>${esc(exportPeriod(label))} · Created ${esc(fmt(todayISO(),{month:'long',day:'numeric',year:'numeric'}))}</p>
+    <p>${days.length} day${days.length===1?'':'s'} logged · ${labsText(nLabs)} · ${techs.length} technolog${techs.length===1?'y':'ies'}</p></header>`;
+  if(techs.length) h += `<section class="pr-sec"><h2>Technologies used</h2>${groupSkills(techs).map(g=>`<p><b>${esc(g.group)}:</b> ${g.items.map(t=>`${esc(t.name)} (${t.n})`).join(', ')}</p>`).join('')}</section>`;
+  weeksIn(days).forEach(w => {
+    const wd = days.filter(d=>weekOf(d.date)===w);
+    h += `<section class="pr-sec"><h2>${w>0 ? `Week ${w}` : 'Before week 1'}${w>0 ? ` <span>${esc(fmtMD(weekStart(w)))} to ${esc(fmtMD(addDays(weekStart(w),3)))}</span>` : ''}</h2>`;
+    wd.forEach(d => {
+      h += `<div class="pr-day"><h3>${esc(fmtLong(d.date))}${isInterview(d) ? ' · Mock technical interview' : (clean(d.course) ? ` · ${esc(d.course)}` : '')}</h3>`;
+      if(isInterview(d)){
+        const qs = linesOf(d.topics);
+        if(qs.length) h += `<p><b>Topics and questions asked:</b></p>${list(qs)}`;
+        h += para('How my answers went:', d.reflection) + para('What I plan to review:', d.reviewPlan);
+      } else {
+        const tp = linesOf(d.topics);
+        if(tp.length) h += `<p><b>Topics covered:</b></p>${list(tp)}`;
+        h += para('Notes:', d.notes);
+        labsOf(d).forEach((l,i) => {
+          h += `<div class="pr-lab"><h4>Lab ${i+1}: ${esc(clean(l.title) || 'Untitled lab')}</h4>`
+            + para(`What I did${l.actions.length ? ` (${esc(l.actions.join(', ').toLowerCase())})` : ''}:`, l.did)
+            + (l.techs.length ? `<p><b>Technologies:</b> ${esc(l.techs.join(', '))}</p>` : '')
+            + para('Result and objective:', l.outcome) + para('Scope:', l.scope) + `</div>`;
+        });
+        const rs = linesOf(d.resources);
+        if(rs.length) h += `<p><b>Resources:</b></p>${list(rs)}`;
+        h += para('Most interesting thing I learned:', d.interesting);
+      }
+      h += `</div>`;
+    });
+    const wk = S.weeks[w];
+    if(w > 0 && wk && (clean(wk.wins)||clean(wk.unclear)||clean(wk.focus)||wk.confidence)){
+      h += `<div class="pr-review"><h3>Week ${w} review</h3>` + para('Biggest wins:', wk.wins) + para('Still unclear:', wk.unclear)
+        + (wk.confidence ? `<p><b>Confidence:</b> ${wk.confidence} of 5</p>` : '') + para('Focus for next week:', wk.focus) + `</div>`;
+    }
+    h += `</section>`;
+  });
+  if(S.bullets.length) h += `<section class="pr-sec"><h2>My resume bullets</h2>${list(S.bullets.map(b=>oneLine(b.text)))}</section>`;
+  return h;
+}
+function printRecord(days, label){
+  let area = document.getElementById('printArea');
+  if(!area){ area = document.createElement('div'); area.id = 'printArea'; document.body.appendChild(area); }
+  area.innerHTML = recordHTML(days, label);
+  const oldTitle = document.title;
+  document.title = `Training Record - ${exportPeriod(label)}`;
+  const restore = () => { document.title = oldTitle; window.removeEventListener('afterprint', restore); };
+  window.addEventListener('afterprint', restore);
+  window.print();
+  setTimeout(restore, 1500);
+}
+
 function renderSummaries(){
   const all = loggedDays();
   const weeks = [...new Set(all.map(d=>weekOf(d.date)))].filter(w=>w>0).sort((a,b)=>a-b);
@@ -1484,6 +1645,36 @@ function renderSummaries(){
   const topTech = [...techMap.values()].sort((a,b)=>b.n-a.n).slice(0,18);
   const nLabs = days.reduce((n,d)=>n+labsOf(d).length,0);
 
+  let exportHTML = '';
+  if(days.length){
+    const md = buildMarkdown(days, label);
+    const mdId = regPrompt(md);
+    exportHTML = `<section class="card">
+      <div class="card-head"><h3>Export your training</h3><span class="muted small">Uses "What to include" above</span></div>
+      <div class="prompt-grid">
+        <div class="pcard"><div class="pcard-top"><div class="pcard-icon c-blue">${ICON.summary}</div><h3>Training record (PDF)</h3></div>
+          <p>Everything you logged in this range, including notes, reviews, and mock interviews, in a clean printable layout. <b>Private:</b> for you, a career coach, or interview prep.</p>
+          <p class="small" style="color:var(--teal);font-weight:600">In the print window, choose "Save as PDF" as the printer.</p>
+          <div class="actions-row"><button class="btn primary small" id="exportPdf">Create PDF</button></div></div>
+        <div class="pcard"><div class="pcard-top"><div class="pcard-icon c-purple">${ICON.bullets}</div><h3>GitHub portfolio (README.md)</h3></div>
+          <p>Your hands-on labs, technologies, and saved resume bullets, ready to post on GitHub. <b>Public-ready:</b> leaves out your notes, weekly reflections, confidence ratings, and mock interviews.</p>
+          <pre class="prompt" id="pre-${mdId}" hidden>${esc(md)}</pre>
+          <div class="actions-row"><button class="btn primary small" id="exportMd">Download README.md</button><button class="btn small" data-preview="pre-${mdId}">Preview</button><button class="btn small" data-copy="${mdId}">Copy</button></div></div>
+      </div>
+      <details class="examples" style="margin-top:12px"><summary>How to post it on GitHub</summary><ul>
+        <li>Read the preview first. Everything in this file will be public, so edit or remove anything you don't want to share.</li>
+        <li>On GitHub, create a new repository, for example <b>it-training-portfolio</b>.</li>
+        <li>Click <b>Add file</b>, then <b>Upload files</b>, drag in <b>README.md</b>, and click <b>Commit changes</b>.</li>
+        <li>GitHub shows README.md on the repository's front page. To update it later, download a new README.md and upload it the same way.</li>
+      </ul></details>
+    </section>`;
+  } else {
+    exportHTML = `<section class="card">
+      <div class="card-head"><h3>Export your training</h3></div>
+      <p class="muted small" style="margin:0">${all.length ? 'Nothing is logged in the range chosen under "What to include". Pick a different range to export it.' : 'Once you log a class day, you can export your training here as a <b>PDF training record</b> (private) or a <b>README.md</b> portfolio file for GitHub.'}</p>
+    </section>`;
+  }
+
   main.innerHTML = `<div class="stack">
     <section class="card">
       <h2>Summaries &amp; resume bullets</h2>
@@ -1513,12 +1704,15 @@ function renderSummaries(){
       <div class="actions-row" style="margin-top:10px"><button class="btn primary small" id="addBullets">Save bullets</button></div>
       ${S.bullets.length ? `<ul class="bullet-list">${S.bullets.map((b,i)=>`<li><span class="t">${esc(b.text)}</span><button class="btn ghost small" data-cpb="${i}">Copy</button><button class="btn ghost small danger" data-rmb="${i}" aria-label="Delete bullet">Delete</button></li>`).join('')}</ul>` : ''}
     </section>
+    ${exportHTML}
   </div>`;
 
   main.onclick = e => {
     const t = e.target;
     const r = t.closest('[data-range]'); if(r){ st.sumRange = r.dataset.range; return renderSummaries(); }
     const ty = t.closest('[data-type]'); if(ty){ st.sumType = ty.dataset.type; return renderSummaries(); }
+    if(t.id === 'exportPdf') return printRecord(days, label);
+    if(t.id === 'exportMd'){ downloadText(buildMarkdown(days, label), 'README.md', 'text/markdown'); return toast('README.md downloaded. Review it before posting to GitHub.'); }
     if(t.id === 'addBullets'){
       const lines = linesOf($('#newBullets').value);
       if(!lines.length) return;

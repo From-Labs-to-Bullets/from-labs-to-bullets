@@ -101,6 +101,13 @@ The **Summaries & bullets** tab also builds prompts for:
 
 Each can cover all of training, a single week, a course, or a date range.
 
+## Exporting your training
+
+On the **Summaries & bullets** tab, the **Export your training** section creates two files from whatever is chosen under **What to include** (everything, a week, a course, or a date range):
+
+- **Training record (PDF):** everything logged, including notes, weekly reviews, and mock interviews, in a clean printable layout. Click **Create PDF**, then choose **Save as PDF** in the print window. This file is private. To edit it, open the PDF in Microsoft Word (**File**, then **Open**), which converts it to an editable document.
+- **GitHub portfolio (README.md):** labs, technologies, and saved resume bullets, formatted for GitHub. Technologies are grouped by what they do (Cloud & Virtualization, Server & Identity, Networking & Security, Automation & Operations, DevOps & Version Control, Endpoint Management, AI), with anything unrecognized under Other tools. Instructors can adjust the groups in `SKILL_RULES` in `index.html`. It leaves out notes, weekly reflections, confidence ratings, and mock interviews, because it's meant to be public. Create a repository (for example, `it-training-portfolio`), upload `README.md`, and GitHub displays it on the repository's front page.
+
 ## Your data stays on your computer
 
 - **No accounts, no sign-in, no server.** Everything you type is saved in your web browser, on your own computer.
