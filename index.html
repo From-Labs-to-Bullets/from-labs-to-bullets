@@ -89,6 +89,7 @@ input.short{max-width:120px}
 .btn.danger{color:var(--danger)}
 .btn.ghost{background:none;border-color:transparent;color:var(--muted)}
 .btn.ghost:hover{color:var(--text)}
+[hidden]{display:none !important}
 .actions-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .icon-btn{width:40px;height:40px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:1.3rem;line-height:1}
 .icon-btn:hover{border-color:var(--teal)}
@@ -136,6 +137,10 @@ details.examples li b{color:var(--text)}
 .seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:3px;gap:2px;flex-wrap:wrap}
 .seg button{border:0;background:none;color:var(--muted);padding:7px 14px;border-radius:8px;font-weight:600;font-size:.88rem}
 .seg button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
+.daytabs{display:flex;width:100%}
+.daytabs button{flex:1;padding:10px 14px;font-size:.98rem}
+.daytabs button[aria-pressed="true"]{background:var(--primary);color:#fff}
+.linkbtn{background:none;border:0;padding:0;color:inherit;font:inherit;text-decoration:underline;cursor:pointer;text-align:left}
 .controls{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
 .controls .field{margin:0;flex:1;min-width:min(200px,100%)}
 
@@ -212,7 +217,7 @@ footer{color:var(--muted);font-size:.8rem;text-align:center;padding:0 16px 30px}
         <circle cx="15.5" cy="37" r="1.7" fill="#35c6c1"/>
         <path d="M20 37h14" stroke="#a99df5" stroke-width="2.2" stroke-linecap="round"/>
       </svg>
-      <div><h1>From Labs to Bullets</h1><p>Your daily technical training diary</p></div>
+      <div><h1>From Labs to Bullets</h1><p>Track. Learn. Get hired.</p></div>
     </div>
     <div id="weekBadge" class="week-badge"></div>
   </div>
@@ -520,6 +525,7 @@ document.addEventListener('click', async e => {
   if(a === 'off'){ await turnOffAutoSave(); render(); }
   if(a === 'snooze'){ S.settings.autoSaveSnooze = Date.now(); saveNow(); render(); }
   if(a === 'hideskip'){ st.skippedAutoSave = false; render(); }
+  if(a === 'hidelivetip'){ S.settings.hideLiveTip = true; saveNow(); render(); }
 });
 
 const isInterview = d => !!d && d.type === 'interview';
@@ -534,16 +540,16 @@ function missingFields(d){
     if(!clean(d.reflection)) m.push({label:'2. Which answers felt strong or weak', sel:'[data-f="reflection"]'});
     return m;
   }
-  if(!clean(d.topics)) m.push({label:'1. Topics covered in class', sel:'[data-f="topics"]'});
-  if(d.labCount==='' || d.labCount==null) m.push({label:'2. Number of labs completed', sel:'[data-f="labCount"]'});
-  if(d.labCount===0 && !clean(d.notes)) m.push({label:'What you learned today, in your own words (needed on days without labs)', sel:'[data-f="notes"]'});
+  if(!clean(d.topics)) m.push({label:"1. Today's modules or topics", sel:'[data-f="topics"]'});
+  if(d.labCount==='' || d.labCount==null) m.push({label:'2. Number of labs completed', sel:'[data-f="labCount"]', tab:'labs'});
+  if(d.labCount===0 && !clean(d.notes)) m.push({label:'Notes on what you learned (needed on days without labs)', sel:'[data-f="notes"]', tab:'notes'});
   labsOf(d).forEach((l,i)=>{
     const n = `Lab ${i+1}`;
-    if(!clean(l.title)) m.push({label:`${n}: lab title`, sel:`[data-lab="${i}"][data-f="title"]`});
-    if(!clean(l.did)) m.push({label:`${n}: 3. what you did`, sel:`[data-lab="${i}"][data-f="did"]`});
-    if(!l.techs.length) m.push({label:`${n}: 3. technologies or tools`, sel:`[data-tagbox="${i}"]`});
-    if(!clean(l.outcome)) m.push({label:`${n}: 4. result and objective`, sel:`[data-lab="${i}"][data-f="outcome"]`});
-    if(!clean(l.scope)) m.push({label:`${n}: 5. scope of the environment`, sel:`[data-lab="${i}"][data-f="scope"]`});
+    if(!clean(l.title)) m.push({label:`${n}: lab title`, sel:`[data-lab="${i}"][data-f="title"]`, tab:'labs'});
+    if(!clean(l.did)) m.push({label:`${n}: 3. what you did`, sel:`[data-lab="${i}"][data-f="did"]`, tab:'labs'});
+    if(!l.techs.length) m.push({label:`${n}: 3. technologies or tools`, sel:`[data-tagbox="${i}"]`, tab:'labs'});
+    if(!clean(l.outcome)) m.push({label:`${n}: 4. result and objective`, sel:`[data-lab="${i}"][data-f="outcome"]`, tab:'labs'});
+    if(!clean(l.scope)) m.push({label:`${n}: 5. scope of the environment`, sel:`[data-lab="${i}"][data-f="scope"]`, tab:'labs'});
   });
   return m;
 }
@@ -566,7 +572,7 @@ function setView(v){
   render();
   window.scrollTo({top:0});
 }
-$('#tabs').addEventListener('click', e => { const b = e.target.closest('button[data-view]'); if(b) { if(!S.settings.startDate && b.dataset.view!=='settings'){ render(); return;} setView(b.dataset.view); } });
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('button[data-view]'); if(b) { if(!S.settings.startDate && b.dataset.view!=='settings'){ render(); return;} if(b.dataset.view === 'today') st.cur = todayISO(); setView(b.dataset.view); } });
 
 function updateBadge(){
   const w = weekOf(todayISO());
@@ -785,16 +791,60 @@ function labsHTML(e){
   return e.labs.slice(0,n).map(labHTML).join('');
 }
 function notesHTML(e){
-  if(e.labCount === 0) return `<section class="card notes-card">
-    <label class="field"><span class="q">No labs today, so describe what you learned in your own words. <i class="req">*</i></span>
-      <span class="hint">For each topic: what is it, how does it work, and why does it matter in IT? Explaining it yourself is one of the best ways to remember it. <b>Discussed project ideas or AI?</b> Note the ideas, the technologies involved, and what you could learn from them.</span>
-      <textarea data-f="notes" rows="6" placeholder="e.g., DNS translates names like server1.contoso.local into IP addresses so computers can find each other. Active Directory depends on DNS to locate domain controllers, which is why a broken DNS record can stop users from signing in.">${esc(e.notes)}</textarea></label>
+  const noLabs = e.labCount === 0;
+  return `<section class="card notes-card">
+    <label class="field"><span class="q">Class notes ${noLabs ? '<i class="req">*</i>' : '<span class="opt">(optional)</span>'}</span>
+      <span class="hint">${noLabs
+        ? `<b>No labs today, so your notes are needed.</b> For each topic: what is it, how does it work, and why does it matter in IT? Explaining it yourself is one of the best ways to remember it. <b>Discussed project ideas or AI?</b> Note the ideas, the technologies involved, and what you could learn from them.`
+        : `Write notes here during the lecture and discussion: concepts, explanations, tips, or commands. Short notes in your own words are best. Don't worry about typos; you can tidy them up below.`}</span>
+      <textarea data-f="notes" rows="12" placeholder="e.g., DNS translates names like server1.contoso.local into IP addresses. AD needs DNS to find domain controllers, so a broken DNS record can stop sign-ins.">${esc(e.notes)}</textarea></label>
   </section>`;
-  return `<section class="card">
-    <label class="field"><span class="q">Any other notes from class worth remembering? <span class="opt">(optional)</span></span>
-      <span class="hint">Concepts, explanations, or tips from the lecture or discussion that weren't part of a lab.</span>
-      <textarea data-f="notes" rows="3">${esc(e.notes)}</textarea></label>
-  </section>`;
+}
+function tidyPrompt(e){
+  const lvl = (LEVELS[S.settings.level] || LEVELS.new).text;
+  const when = e.date === todayISO() ? 'today' : `on ${fmtLong(e.date)}`;
+  const topics = linesOf(e.topics);
+  return `I'm a student in a 17-week, hands-on IT technical training program. ${lvl} Below are the notes I took during class ${when}${clean(e.course) ? ` (${clean(e.course)})` : ''}. I wrote them quickly while listening, so they may have typos, gaps, or mistakes.
+${topics.length ? `\nToday's topics:\n${topics.map(t=>'- '+t).join('\n')}\n` : ''}
+Please tidy my notes and give me a quick heads-up on anything I should check. Do it all in one reply, and don't ask me any questions. I'll use separate study prompts to practice later.
+
+Your reply should have exactly these three parts:
+
+1. My tidied notes
+- Fix spelling and grammar, and organize the notes under short headings by topic.
+- Keep my meaning, and keep my wording where it's already clear.
+- Don't add facts, examples, or steps that aren't in my notes, and don't fill in gaps. Point out gaps in part 2 instead.
+- Keep it about the same length as my original notes.
+- Use plain text only: headings on their own line and dashes for lists, with no bold, asterisks, or other formatting symbols, so I can paste it back into my diary.
+
+2. Worth a second look
+- List up to 5 short heads-ups, most important first. Each one is one or two sentences.
+- Include possible mistakes or outdated terms, with the correct version (for example: "You wrote Azure AD. Its current name is Microsoft Entra ID.").
+- Include spots that might need more detail, and say what to check (for example: "Your note on DNS zones is brief. Check what a forward lookup zone does.").
+- Where it helps, name the Microsoft Learn topic to check.
+- Don't phrase these as questions, and don't ask me to reply. If nothing stands out, say so in one line.
+
+3. End with this line: "To practice these, use the Listener or Examiner study prompts."
+
+Use current Microsoft product names (for example, Microsoft Entra ID, not Azure Active Directory). If you're not sure something is correct, say so instead of guessing, and tell me which Microsoft Learn topic to check.
+
+MY CLASS NOTES:
+${clean(e.notes)}`;
+}
+function dayTabsHTML(e){
+  const t = st.dayTab === 'labs' ? 'labs' : 'notes';
+  const n = Number(e.labCount)||0;
+  return `<div class="seg daytabs" role="tablist" aria-label="Class notes or labs">
+      <button type="button" role="tab" data-daytab="notes" aria-pressed="${t==='notes'}" aria-selected="${t==='notes'}" aria-controls="paneNotes">Class notes</button>
+      <button type="button" role="tab" data-daytab="labs" aria-pressed="${t==='labs'}" aria-selected="${t==='labs'}" aria-controls="paneLabs">Labs<span id="labTabCount">${n ? ` (${n})` : ''}</span></button>
+    </div>`;
+}
+function showDayTab(t){
+  st.dayTab = t;
+  $$('[data-daytab]', main).forEach(b => { const on = b.dataset.daytab === t; b.setAttribute('aria-pressed', on); b.setAttribute('aria-selected', on); });
+  const pn = $('#paneNotes'), pl = $('#paneLabs');
+  if(pn) pn.hidden = t !== 'notes';
+  if(pl) pl.hidden = t !== 'labs';
 }
 function statusPill(e){
   if(!hasContent(e)) return `<span class="pill">Not started</span>`;
@@ -812,7 +862,7 @@ function dayActionsHTML(date){
   return `<div class="actions-row">
       <button type="button" class="btn primary" id="finishDay">Save &amp; get study prompts</button>
       <span class="muted small">Your answers save automatically as you type.</span>
-      ${S.days[date] ? `<button type="button" class="btn ghost small" id="clearDay" style="margin-left:auto">Clear this day</button>` : ''}
+      <button type="button" class="btn ghost small" id="clearDay" style="margin-left:auto" ${S.days[date] ? '' : 'hidden'}>Clear this day</button>
     </div>
     <div id="missing"></div>`;
 }
@@ -840,6 +890,7 @@ function dailyHTML(date){
   return `<form id="dayForm" class="stack" novalidate onsubmit="return false">
     <section class="card">
       <div class="card-head"><h2>Daily log</h2><span id="statusPill">${statusPill(e)}</span></div>
+      ${date === todayISO() && !S.settings.hideLiveTip ? `<div class="notice info small actions-row" style="justify-content:space-between;margin-bottom:16px"><span><b>Fill this in as you go.</b> Keep this page open during class. Add today's topics when class starts, write in <b>Class notes</b> during the lecture, and switch to <b>Labs</b> to add each lab right after you finish it, while the name and details are fresh. <b>Your answers save automatically as you type.</b> At the end of the day, click <b>Save &amp; get study prompts</b>.</span><button type="button" class="btn ghost small" data-fs="hidelivetip">Got it</button></div>` : `<p class="muted small" style="margin:-4px 0 14px">Your answers save automatically as you type.</p>`}
       ${dayTypeHTML(e)}
       <div class="field">
         <label><span class="q">Course or module</span>
@@ -850,19 +901,35 @@ function dailyHTML(date){
           <button type="button" class="btn ghost small" id="cancelCourse">Cancel</button>
         </div>
       </div>
-      <label class="field"><span class="q"><b>1.</b> What topics were covered in class today? <i class="req">*</i></span>
-        <span class="hint">One topic per line.</span>
+      <label class="field"><span class="q"><b>1.</b> Which modules or topics are on today's plan? <i class="req">*</i></span>
+        <span class="hint">Fill this in at the start of the day, one per line. Add any topics that come up later.</span>
         <textarea data-f="topics" rows="3" placeholder="e.g.&#10;Active Directory Domain Services&#10;Group Policy basics">${esc(e.topics)}</textarea></label>
-      <label class="field"><span class="q"><b>2.</b> How many labs did you complete today? <i class="req">*</i></span>
-        <input type="number" class="short" min="0" max="12" inputmode="numeric" data-f="labCount" value="${e.labCount}"></label>
     </section>
-    <div id="labs" class="stack">${labsHTML(e)}</div>
-    <div id="notesBox">${notesHTML(e)}</div>
+    ${dayTabsHTML(e)}
+    <div id="paneNotes" class="stack" role="tabpanel" ${st.dayTab === 'labs' ? 'hidden' : ''}>
+      <div id="notesBox">${notesHTML(e)}</div>
+      <section class="card">
+        <label class="field"><span class="q">What resources were you given by the instructor that you may want to use later? <span class="opt">(optional)</span></span>
+          <span class="hint">Paste Microsoft Learn links, docs, videos, or commands. One per line.</span>
+          <textarea data-f="resources" rows="3" placeholder="https://learn.microsoft.com/...">${esc(e.resources)}</textarea></label>
+      </section>
+      <section class="pcard">
+        <div class="pcard-top"><div class="pcard-icon c-teal">${ICON.summary}</div><div><h3>Tidy &amp; check my notes</h3><p>Your AI tool fixes typos, organizes your notes, and points out anything worth a second look. Paste the clean version back into Class notes.</p></div></div>
+        <p class="small" style="color:var(--teal);font-weight:600">Best at the end of the lecture or the day, before your study prompts.</p>
+        <pre class="prompt" id="pre-tidy" hidden></pre>
+        <div class="actions-row"><button type="button" class="btn primary small" data-copy="tidy" id="tidyCopy">Copy prompt</button><button type="button" class="btn small" data-preview="pre-tidy" id="tidyPreview">Preview</button></div>
+      </section>
+    </div>
+    <div id="paneLabs" class="stack" role="tabpanel" ${st.dayTab === 'labs' ? '' : 'hidden'}>
+      <section class="card">
+        <label class="field"><span class="q"><b>2.</b> How many labs have you completed so far today? <i class="req">*</i></span>
+          <span class="hint">Raise the number each time you finish a lab, and a new section appears for it. Finished a lab you started yesterday? Log it today, the day you finish it. Enter 0 on days without labs.</span>
+          <input type="number" class="short" min="0" max="12" inputmode="numeric" data-f="labCount" value="${e.labCount}"></label>
+      </section>
+      <div id="labs" class="stack">${labsHTML(e)}</div>
+    </div>
     <section class="card">
-      <label class="field"><span class="q"><b>6.</b> What resources were you given by the instructor that you may want to use later? <span class="opt">(optional)</span></span>
-        <span class="hint">Paste Microsoft Learn links, docs, videos, or commands. One per line.</span>
-        <textarea data-f="resources" rows="3" placeholder="https://learn.microsoft.com/...">${esc(e.resources)}</textarea></label>
-      <label class="field"><span class="q"><b>7.</b> What was the most interesting or surprising skill, command, technology, or concept you learned today, and why did it stand out to you? <span class="opt">(optional)</span></span>
+      <label class="field"><span class="q">What was the most interesting or surprising skill, command, technology, or concept you learned today, and why did it stand out to you? <span class="opt">(optional)</span></span>
         <textarea data-f="interesting" rows="3">${esc(e.interesting)}</textarea></label>
     </section>
     ${dayActionsHTML(date)}
@@ -872,6 +939,7 @@ function dailyHTML(date){
 function persistEntry(){
   const e = st.entry; e.updated = Date.now(); S.days[e.date] = e;
   const pill = $('#statusPill'); if(pill) pill.innerHTML = statusPill(e);
+  const clr = $('#clearDay'); if(clr) clr.hidden = false;
   saveSoon();
 }
 function renderTagbox(i, focus){
@@ -917,6 +985,7 @@ function bindDaily(){
       e.labCount = t.value==='' ? '' : Math.max(0, Math.min(12, parseInt(t.value,10)||0));
       $('#labs').innerHTML = labsHTML(e);
       $('#notesBox').innerHTML = notesHTML(e);
+      const n = Number(e.labCount)||0; $('#labTabCount').textContent = n ? ` (${n})` : '';
     } else {
       e[f] = t.value;
       if(f === 'course'){ S.settings.lastCourse = t.value; }
@@ -954,6 +1023,13 @@ function cancelNewCourse(){
   $('[data-f="course"]').innerHTML = courseOptions(st.entry.course);
   $('#addCourse').hidden = true;
 }
+function goToField(m){
+  if(m.tab && $('#paneNotes')) showDayTab(m.tab);
+  const el = main.querySelector(m.sel); if(!el) return;
+  el.scrollIntoView({behavior:'smooth', block:'center'});
+  const f = el.matches('input,textarea,select') ? el : el.querySelector('input');
+  if(f) setTimeout(()=>f.focus({preventScroll:true}), 300);
+}
 function dailyClick(ev){
   const t = ev.target, e = st.entry;
   const dt = t.closest('[data-daytype]');
@@ -961,6 +1037,18 @@ function dailyClick(ev){
     if(e.type !== dt.dataset.daytype){ e.type = dt.dataset.daytype; persistEntry(); renderToday(); }
     return;
   }
+  const tab = t.closest('[data-daytab]');
+  if(tab) return showDayTab(tab.dataset.daytab);
+  if(t.closest('#tidyCopy') || t.closest('#tidyPreview')){
+    // Build the prompt from the notes as they are right now; the global handler then copies or previews it.
+    const has = !!clean(e.notes);
+    st.prompts.tidy = has ? tidyPrompt(e) : '';
+    $('#pre-tidy').textContent = has ? st.prompts.tidy : 'Write some class notes first, then come back here.';
+    if(!has && t.closest('#tidyCopy')) toast('Write some class notes first');
+    return;
+  }
+  const mg = t.closest('[data-missgo]');
+  if(mg){ const m = (st.miss||[])[Number(mg.dataset.missgo)]; if(m) goToField(m); return; }
   if(t.id === 'saveCourse') return saveNewCourse();
   if(t.id === 'cancelCourse') return cancelNewCourse();
   const chip = t.closest('[data-chip]');
@@ -985,11 +1073,12 @@ function dailyClick(ev){
     const box = $('#missing');
     if(miss.length && t.id === 'finishDay'){
       miss.forEach(m => { const el = main.querySelector(m.sel); if(el) el.classList.add('invalid'); });
-      box.innerHTML = `<div class="notice"><b>Almost there. Still needed:</b><ul>${miss.map(m=>`<li>${esc(m.label)}</li>`).join('')}</ul>
+      st.miss = miss;
+      const tabName = { notes:'Class notes', labs:'Labs' };
+      box.innerHTML = `<div class="notice"><b>Almost there. Still needed:</b><ul>${miss.map((m,k)=>`<li><button type="button" class="linkbtn" data-missgo="${k}">${esc(m.label)}</button>${m.tab && !isInterview(e) ? ` <span class="muted small">(${tabName[m.tab]} tab)</span>` : ''}</li>`).join('')}</ul>
         <p class="small" style="margin:8px 0 0">Your progress is saved as a draft, so you can finish later.</p>
         ${clean(e.topics) ? `<div class="actions-row" style="margin-top:10px"><button type="button" class="btn small" id="promptsAnyway">Get study prompts anyway</button></div>` : ''}</div>`;
-      const first = main.querySelector(miss[0].sel);
-      if(first){ first.scrollIntoView({behavior:'smooth', block:'center'}); const f = first.matches('input,textarea,select') ? first : first.querySelector('input'); if(f) setTimeout(()=>f.focus({preventScroll:true}), 300); }
+      goToField(miss[0]);
       return;
     }
     box.innerHTML = '';
@@ -1114,7 +1203,7 @@ function notesBlock(days, opts={}){
     const parts = [head];
     const topics = linesOf(d.topics);
     if(topics.length) parts.push('Topics covered in class:\n' + topics.map(t=>'- '+t).join('\n'));
-    if(clean(d.notes)) parts.push(`My notes on what I learned (in my own words):\n${clean(d.notes)}`);
+    if(clean(d.notes)) parts.push(`${labsOf(d).length ? 'My class notes (from the lecture and discussion, not hands-on work)' : 'My class notes (no labs this day, so this was lecture and discussion, not hands-on work)'}:\n${clean(d.notes)}`);
     labsOf(d).forEach((l,i)=>parts.push(labBlock(l,i)));
     if(opts.resources && clean(d.resources)) parts.push('Resources from my instructor:\n' + linesOf(d.resources).map(t=>'- '+t).join('\n'));
     if(clean(d.interesting)) parts.push(`Most interesting thing I learned: ${clean(d.interesting)}`);
@@ -1128,7 +1217,8 @@ const GROUND_RULES = `Ground rules:
 - Keep to the topics and labs in my notes. Only go beyond them to connect related ideas, and tell me when you do.
 - Use current Microsoft product names (for example, Microsoft Entra ID, not Azure Active Directory).
 - If you're not completely sure something is correct, say so instead of guessing, and tell me which Microsoft Learn topic to check.
-- If my notes include links and you can open them, use them. If you can't open them, rely on my notes and what you know.`;
+- If my notes include links and you can open them, use them. If you can't open them, rely on my notes and what you know.
+- My class notes were written quickly during class. If something in them looks wrong or out of date, tell me and give the correct version.`;
 
 const ROLES = [
   { key:'listener', name:'Listener', color:'c-purple', when:'Best for understanding: use it when a topic is new to you.', tag:'You explain a topic in your own words. The AI grades your explanation and tells you what you missed.',

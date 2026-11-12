@@ -1,6 +1,8 @@
 # From Labs to Bullets
 
-**A daily technical training diary for IT students. It turns hands-on labs into study prompts, training summaries, and resume bullets.**
+**Track. Learn. Get hired.**
+
+A daily technical training diary for IT students. It turns hands-on labs into study prompts, training summaries, and resume bullets.
 
 👉 **Open the app:** https://from-labs-to-bullets.github.io/from-labs-to-bullets/
 
@@ -10,17 +12,26 @@
 
 Over 17 weeks of IT technical training, students complete close to 100 virtual labs and attend lectures and discussions on the same concepts. From Labs to Bullets helps them keep a record of that work and put it to use.
 
-1. **Log each class day (Monday to Thursday).** Answer a few questions about the topics covered, the labs completed, the technologies used, and what each lab accomplished.
-2. **Study with AI.** After saving a day, get two ready-to-paste prompts built from your own notes. Use them with any AI tool (Microsoft Copilot, ChatGPT, Claude, Gemini, and others).
+1. **Log each class day as it happens (Monday to Thursday).** Keep the app open during class: add the day's topics when class starts, take notes during the lecture, and log each lab right after finishing it, while the details are fresh. Everything saves as you type.
+2. **Study with AI.** At the end of the day, tidy your notes and get two ready-to-paste study prompts built from your own notes. Use them with any AI tool (Microsoft Copilot, ChatGPT, Claude, Gemini, and others).
 3. **Review your week on Fridays.** Reflect on wins, weak spots, and confidence, and get a weekly summary prompt.
 4. **Turn your training into career material.** Generate prompts for training summaries, resume bullets, and interview stories from everything you've logged.
 
-## The daily questions
+## The daily log
 
-Questions 1 to 5 are required. Questions 6 and 7 are optional.
+The **Today** screen follows the order of a class day. The numbered questions are required; the rest are optional.
 
-1. What topics were covered in class today?
-2. How many labs did you complete today?
+**At the start of the day:**
+
+1. Which modules or topics are on today's plan? *(one per line; students add topics that come up later)*
+
+Then a switch with two tabs:
+
+| Class notes | Labs |
+|---|---|
+| A large notes area for the lecture and discussion. | **2.** How many labs have you completed so far today? Students raise the number after each lab, and a new section appears for it. |
+| What resources were you given by the instructor that you may want to use later? *(optional)* | For each lab: the lab title, then questions 3 to 5 below. |
+| **Tidy & check my notes**, a prompt for cleaning up the notes (see below). | |
 
 For each lab:
 
@@ -28,10 +39,13 @@ For each lab:
 4. How did the environment or solution function after you completed the lab, and what business or technical objective did your setup achieve? What problem were you trying to solve?
 5. What was the scope of the lab environment, including the number of systems, devices, accounts, or automation scripts you configured?
 
-Then:
+**At the end of the day:** What was the most interesting or surprising skill, command, technology, or concept you learned today, and why did it stand out to you? *(optional)* Then **Save & get study prompts**.
 
-6. What resources were you given by the instructor that you may want to use later?
-7. What was the most interesting or surprising skill, command, technology, or concept you learned today, and why did it stand out to you?
+If a required answer is missing, the app lists it, says which tab it's on, and jumps to it.
+
+**Labs that span two days:** if a lab is started late in the day and finished the next morning, students log it on the day they finish it.
+
+**Tidy & check my notes:** notes taken while listening are often rough. This prompt asks the AI, in one reply and without asking the student any questions, to (1) return the notes with spelling and grammar fixed and organized by topic, adding no new facts, ready to paste back into Class notes, and (2) list up to five short heads-ups worth a second look: possible mistakes or outdated terms, and spots that might need more detail. Practice and questioning are left to the study prompts.
 
 **Scope (question 5):** the app explains why numbers matter for resume bullets and offers examples for each area of the program, including what to write when there's nothing to count.
 
@@ -39,7 +53,7 @@ Then:
 
 **Mock interview days:** mock technical interviews usually happen in week 10 or 11, depending on the cycle. On any class day, students can switch **Type of day** to **Mock interview** to answer three short questions instead: which topics or questions they were asked, which answers felt strong or weak, and what they'll review next. The study prompts then focus on the weak answers. Interview practice, project ideas, and AI discussions are never turned into resume bullets.
 
-**Days without labs:** students describe what they learned in their own words instead. On lab days, an optional notes box captures anything else from class worth remembering.
+**Days without labs:** students enter 0 labs, and Class notes becomes required: they describe what they learned in their own words.
 
 ## The two study tools
 
@@ -59,7 +73,10 @@ Every prompt includes the student's notes, their IT experience level, and ground
 - stay within the topics the student actually covered,
 - use current Microsoft product names,
 - say when it isn't sure instead of guessing,
-- point the student to Microsoft Learn to check answers.
+- point the student to Microsoft Learn to check answers,
+- point out anything in the class notes that looks wrong or out of date.
+
+Class notes are labeled in every prompt as coming from the lecture and discussion, not hands-on work. This keeps the AI from presenting something a student only heard about as a skill they practiced.
 
 > **AI can be wrong.** Treat it as a practice partner, not the final word. If an answer doesn't match your lab or class, check Microsoft Learn or ask your instructor.
 
@@ -99,9 +116,10 @@ Each can cover all of training, a single week, a course, or a date range.
 1. Open the app link above in Microsoft Edge and bookmark it.
 2. Enter your training start date and your IT experience level.
 3. Turn on auto-save and save your diary file in your OneDrive folder.
-4. At the end of each class day, open **Today** and answer the questions.
-5. Click **Save & get study prompts**, copy a prompt, and paste it into your AI tool.
-6. On Fridays, complete the weekly review.
+4. When class starts, open **Today** and enter the day's course and topics.
+5. During the lecture, write in **Class notes**. After each lab, switch to **Labs** and log it.
+6. At the end of the day, use **Tidy & check my notes** if you like, then click **Save & get study prompts**, copy a prompt, and paste it into your AI tool.
+7. On Fridays, complete the weekly review.
 
 ## For instructors
 
