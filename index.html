@@ -342,7 +342,7 @@ function normDay(d, date){
   d = d || {};
   return { date: d.date || date, type: d.type==='interview' ? 'interview' : 'class', reflection:d.reflection||'', reviewPlan:d.reviewPlan||'',
     course:d.course||'', topics:d.topics||'', labCount:(d.labCount===''||d.labCount==null)?'':Number(d.labCount)||0,
-    labs:Array.isArray(d.labs)?d.labs.map(normLab):[], notes:d.notes||'', resources:d.resources||'', interesting:d.interesting||'', updated:d.updated||null };
+    labs:Array.isArray(d.labs)?d.labs.map(normLab):[], notes:d.notes||'', resources:d.resources||'', interesting:d.interesting||'', unclear:d.unclear||'', updated:d.updated||null };
 }
 function normalize(raw){
   const base = fresh();
@@ -551,7 +551,7 @@ document.addEventListener('click', async e => {
 
 const isInterview = d => !!d && d.type === 'interview';
 const labsOf = d => isInterview(d) ? [] : d.labs.slice(0, Number(d.labCount)||0).map(normLab);
-const hasContent = d => d && (clean(d.topics) || labsOf(d).some(l=>clean(l.title)||clean(l.did)) || clean(d.notes) || clean(d.resources) || clean(d.interesting) || clean(d.reflection));
+const hasContent = d => d && (clean(d.topics) || labsOf(d).some(l=>clean(l.title)||clean(l.did)) || clean(d.notes) || clean(d.resources) || clean(d.interesting) || clean(d.unclear) || clean(d.reflection));
 const dayLabelText = d => isInterview(d) ? 'Mock technical interview' : (d.course || linesOf(d.topics)[0] || '');
 const loggedDays = () => Object.values(S.days).filter(hasContent).sort((a,b)=>a.date.localeCompare(b.date));
 function missingFields(d){
@@ -950,8 +950,9 @@ function dailyHTML(date){
       <div id="labs" class="stack">${labsHTML(e)}</div>
     </div>
     <section class="card">
-      <label class="field"><span class="q">What was the most interesting or surprising skill, command, technology, or concept you learned today, and why did it stand out to you? <span class="opt">(optional)</span></span>
-        <textarea data-f="interesting" rows="3">${esc(e.interesting)}</textarea></label>
+      <label class="field"><span class="q">What didn't make sense yet, or what would you like explained again? <span class="opt">(optional)</span></span>
+        <span class="hint">Your study prompts will ask the AI to explain these again in simple terms and give them extra practice.</span>
+        <textarea data-f="unclear" rows="3">${esc(e.unclear)}</textarea></label>
     </section>
     ${dayActionsHTML(date)}
   </form>
@@ -1228,11 +1229,17 @@ function notesBlock(days, opts={}){
     labsOf(d).forEach((l,i)=>parts.push(labBlock(l,i)));
     if(opts.resources && clean(d.resources)) parts.push('Resources from my instructor:\n' + linesOf(d.resources).map(t=>'- '+t).join('\n'));
     if(clean(d.interesting)) parts.push(`Most interesting thing I learned: ${clean(d.interesting)}`);
+    if(opts.study && clean(d.unclear)) parts.push(`NOT CLEAR TO ME YET (please explain again): ${clean(d.unclear)}`);
     out.push(parts.join('\n'));
   });
   return out.join('\n\n');
 }
-function weakSpot(wk){ return wk && clean(wk.unclear) ? `\nI flagged these as still unclear, so spend extra time on them: ${clean(wk.unclear)}\n` : ''; }
+function weakSpot(wk, days=[]){
+  let s = '';
+  if(wk && clean(wk.unclear)) s += `\nI flagged these as still unclear, so spend extra time on them: ${clean(wk.unclear)}\n`;
+  if(days.some(d => !isInterview(d) && clean(d.unclear))) s += `\nWhere my notes say "NOT CLEAR TO ME YET", I asked to have that explained again. Before you quiz me or grade me on it, give me a short, simple explanation with an everyday example, and check that it makes sense to me. Then give it extra practice.\n`;
+  return s;
+}
 
 const GROUND_RULES = `Ground rules:
 - Keep to the topics and labs in my notes. Only go beyond them to connect related ideas, and tell me when you do.
@@ -1255,12 +1262,12 @@ How this works:
 5. Only AFTER grading, give me a short model explanation (one paragraph) to compare with mine.
 6. Invite me to try again or pick another topic.
 
-Don't explain a topic before I've had my turn.
+Don't explain a topic before I've had my turn, unless it's something I said isn't clear to me yet.
 
 ${GROUND_RULES}
-${weakSpot(wk)}
+${weakSpot(wk, days)}
 MY NOTES:
-${notesBlock(days, {resources:true})}
+${notesBlock(days, {resources:true, study:true})}
 
 Start with the warm-up question.` },
   { key:'examiner', name:'Examiner', color:'c-blue', when:'Best for remembering: helps terms, commands and steps stick. Also a good warm-up for mock interviews.', tag:'The AI asks you questions one at a time from memory, then goes back over the ones you missed.',
@@ -1285,9 +1292,9 @@ How this works:
 7. Finish with a short "Practice next time" list: each concept I still missed, a one-sentence way to remember it, and the Microsoft Learn topic to review. Don't give me a grade or a final level. Remind me that coming back to these in a few days is what makes them stick.
 
 ${GROUND_RULES}
-${weakSpot(wk)}
+${weakSpot(wk, days)}
 MY NOTES:
-${notesBlock(days, {resources:true})}
+${notesBlock(days, {resources:true, study:true})}
 
 Start with the warm-up question.` }
 ];
@@ -1483,12 +1490,12 @@ function techCounts(days){
 const SKILL_ORDER = ['Cloud & Virtualization','Server & Identity','Networking & Security','Automation & Operations','DevOps & Version Control','Endpoint Management','AI','Other tools'];
 const SKILL_RULES = [
   ['AI', /\b(ai|openai|copilot|machine learning|cognitive services|computer vision|speech|language studio|document intelligence|bot service)\b/i],
-  ['DevOps & Version Control', /\b(git|github|gitlab|pull requests?|azure devops|azure pipelines|azure repos|azure boards|ci\/cd|yaml|markdown|visual studio code|vs code|terraform|ansible)\b/i],
-  ['Networking & Security', /\b(dns|dhcp|tcp\/?ip|ipv[46]|subnets?|subnetting|vlans?|vpn|ikev2|firewalls?|nsgs?|network security groups?|load balancers?|application gateway|front door|bastion|routing|remote access|nslookup|ping|tracert|ssh|openssh|ssh-keygen|defender|sentinel|key vault|tls|ssl|certificates?|pki|wireshark|nmap|ddos|waf|private endpoints?|expressroute|peering|security)\b/i],
-  ['Endpoint Management', /\b(intune|autopilot|configuration manager|sccm|mecm|endpoint|windows 1[01]|windows client|bitlocker|windows update for business|company portal|mdm|mam)\b/i],
-  ['Server & Identity', /\b(windows server|server core|active directory|ad ds|ad cs|ad fs|group policy|gpos?|gpresult|gpupdate|entra|azure ad|rbac|role-based|conditional access|mfa|multifactor|identity|sconfig|server manager|windows admin center|iis|storage spaces|refs|ntfs|iscsi|file server|dfs|failover clustering|kerberos|ldap)\b/i],
-  ['Cloud & Virtualization', /\b(azure|aws|gcp|cloud|hyper-v|vmware|virtual machines?|vms?|containers?|docker|kubernetes|aks|arm templates?|bicep|virtualization|checkpoints?|log analytics|kql|microsoft 365|m365)\b/i],
-  ['Automation & Operations', /\b(powershell|bash|shell|scripts?|scripting|cron|crontab|task scheduler|winrm|csv|linux|ubuntu|apt|systemd|systemctl|chmod|chown|useradd|usermod|grep|find|tar|sed|awk|vim|nano|nginx|apache|python|backups?|monitoring|patch|patching|updates?|wsus|event viewer|performance monitor)\b/i],
+  ['DevOps & Version Control', /\b(git|github|gitlab|pull requests?|azure devops|azure pipelines|azure repos|azure boards|ci\/cd|yaml|markdown|visual studio code|vs code|terraform|ansible|json|infrastructure as code|iac)\b/i],
+  ['Networking & Security', /\b(dns|dhcp|tcp\/?ip|ipv[46]|subnets?|subnetting|vlans?|vpn|ikev2|firewalls?|nsgs?|network security groups?|load balancers?|application gateway|front door|bastion|routing|remote access|nslookup|ping|tracert|ssh|openssh|ssh-keygen|defender|sentinel|key vault|tls|ssl|certificates?|pki|wireshark|nmap|ddos|waf|private endpoints?|expressroute|peering|security|ufw|iptables|netplan|ipam|nps|radius|branchcache)\b/i],
+  ['Endpoint Management', /\b(intune|autopilot|configuration manager|sccm|mecm|endpoint|windows 1[01]|windows client|bitlocker|windows update for business|company portal|mdm|mam|compliance polic(?:y|ies)|app protection|android|ios|ipados|macos|settings catalog|remote actions?|win32|microsoft 365 apps)\b/i],
+  ['Server & Identity', /\b(windows server|server core|active directory|ad ds|ad cs|ad fs|group policy|gpos?|gpresult|gpupdate|entra|azure ad|rbac|role-based|conditional access|mfa|multifactor|identity|sconfig|server manager|windows admin center|iis|storage spaces|refs|ntfs|iscsi|file server|dfs|failover cluster(?:ing)?|kerberos|ldap|rodc|dsrm|ntdsutil|repadmin|resultant set of policy|rsop|disk management|wbadmin|administrative units?|dynamic groups?|access reviews?|entitlement management|privileged identity|pim|self-service password reset|sspr|password hash sync|password writeback|pass-through authentication|authenticator|passkeys?|fido2|saml|single sign-on|sso|oauth|enterprise applications?|app registrations?|microsoft graph|named locations?|sign-in logs?|audit logs?|custom domains?)\b/i],
+  ['Cloud & Virtualization', /\b(azure|aws|gcp|cloud|hyper-v|vmware|virtual machines?|vms?|containers?|docker|kubernetes|aks|arm templates?|bicep|virtualization|checkpoints?|log analytics|kql|microsoft 365|m365|virtual switch(?:es)?|management groups?|resource locks?|tags|blob|availability (?:zones?|sets?)|autoscale|scale sets?|deployment slots?|recovery services|shared access signatures?|az module|alerts?|action groups?|lifecycle management)\b/i],
+  ['Automation & Operations', /\b(powershell|bash|shell|scripts?|scripting|cron|crontab|task scheduler|winrm|csv|linux|ubuntu|apt|systemd|systemctl|chmod|chown|useradd|usermod|grep|find|tar|sed|awk|vim|nano|nginx|apache|python|backups?|monitoring|patch|patching|updates?|wsus|event viewer|performance monitor|journalctl|sudo|visudo|pssessions?|scheduled tasks?|try\/catch)\b/i],
 ];
 function skillGroup(name){
   if(/^[A-Z][a-z]+-[A-Z][A-Za-z]+$/.test(name.trim())) return 'Automation & Operations'; // PowerShell cmdlets (Verb-Noun)
@@ -1587,7 +1594,7 @@ function recordHTML(days, label){
         });
         const rs = linesOf(d.resources);
         if(rs.length) h += `<p><b>Resources:</b></p>${list(rs)}`;
-        h += para('Most interesting thing I learned:', d.interesting);
+        h += para('Most interesting thing I learned:', d.interesting) + para('Not clear yet:', d.unclear);
       }
       h += `</div>`;
     });

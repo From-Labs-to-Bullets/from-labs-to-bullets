@@ -39,7 +39,7 @@ For each lab:
 4. How did the environment or solution function after you completed the lab, and what business or technical objective did your setup achieve? What problem were you trying to solve?
 5. What was the scope of the lab environment, including the number of systems, devices, accounts, or automation scripts you configured?
 
-**At the end of the day:** What was the most interesting or surprising skill, command, technology, or concept you learned today, and why did it stand out to you? *(optional)* Then **Save & get study prompts**.
+**At the end of the day:** What didn't make sense yet, or what would you like explained again? *(optional)* Then **Save & get study prompts**. Whatever students write here goes into the Listener and Examiner prompts. The AI is asked to explain it again in simple terms, with an everyday example, before quizzing or grading them on it, and then to give it extra practice. It is never used for resume bullets or the GitHub portfolio.
 
 If a required answer is missing, the app lists it, says which tab it's on, and jumps to it.
 
